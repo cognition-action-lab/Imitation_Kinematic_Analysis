@@ -430,6 +430,13 @@ for a = 1:length(data.m)
 end
 
 
+% %compute the velocity
+% for a = 1:length(data.m)
+%     data.m(a).velx = gradient(sgolayfilt(data.m(a).x,2,min([19,2*floor((length(data.m(a).x)-2)/2)+1])));
+%     data.m(a).vely = gradient(sgolayfilt(data.m(a).x,2,min([19,2*floor((length(data.m(a).x)-2)/2)+1])));
+%     data.m(a).velz = gradient(sgolayfilt(data.m(a).x,2,min([19,2*floor((length(data.m(a).x)-2)/2)+1])));
+% end
+
 
 if nargout > 2
     varargout{1} = fname;

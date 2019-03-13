@@ -170,6 +170,9 @@ for blk = BlockNumbers %specify which blocks to mark
         continue;
     end
     
+    %add velocity to dataset
+    BlockData{blk}.Grp = addvel(BlockData{blk}.Grp);
+    
     %parse what the loop indices below should be based on the inputs above.
     if isempty(ItemNumbers) || ItemNumbers == -1  %figure out which items to do
         if ~isempty(BlockData{blk}.Grp(1).pos)
@@ -254,6 +257,9 @@ for blk = BlockNumbers %specify which blocks to mark
             else
                 inds{2} = BlockData{blk}.Grp(1).inds(1,c).SubAction;
             end
+            if isempty(inds{1}) && isempty(inds{2})
+                inds = addmarks(BlockData{blk}.Grp(1).pos{1,c},BlockData{blk}.Grp(1).vel{1,c});
+            end
             
             inds = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
             if isempty(inds{1})
@@ -280,6 +286,10 @@ for blk = BlockNumbers %specify which blocks to mark
                 inds{2} = BlockData{blk}.Grp(1).inds(1,c).SubAction;
             end
             
+            if isempty(inds{1}) && isempty(inds{2})
+                inds = addmarks(BlockData{blk}.Grp(1).pos{1,c},BlockData{blk}.Grp(1).vel{1,c});
+            end
+
             tmp = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
             
             if ~isequal(tmp,inds)
@@ -323,6 +333,10 @@ for blk = BlockNumbers %specify which blocks to mark
                     inds{2} = BlockData{blk}.Grp(2).inds(b,c).SubAction;
                 end
                 
+                if isempty(inds{1}) && isempty(inds{2})
+                    inds = addmarks(BlockData{blk}.Grp(2).pos{b,c},BlockData{blk}.Grp(2).vel{b,c});
+                end
+
                 inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds);
                 
                 if isempty(inds{1})
@@ -360,6 +374,10 @@ for blk = BlockNumbers %specify which blocks to mark
                     inds{2} = [];
                 else
                     inds{2} = BlockData{blk}.Grp(3).inds(b,c).SubAction;
+                end
+                
+                if isempty(inds{1}) && isempty(inds{2})
+                    inds = addmarks(BlockData{blk}.Grp(3).pos{b,c},BlockData{blk}.Grp(3).vel{b,c});
                 end
                 
                 inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds);

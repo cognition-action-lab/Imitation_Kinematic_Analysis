@@ -16,10 +16,13 @@ for a = 1:length(Grp)
                 continue;
             end
             
+            dt = mean(diff(Grp(a).time{b,c}));
+            
+            
             for d = 1:size(Grp(a).pos{b,c},2)
                 for e = 1:size(Grp(a).pos{b,c},3)
                 
-                    Grp(a).vel{b,c}(:,d,e) = gradient(sgolayfilt(Grp(a).pos{b,c}(:,d,e),2,min([19,2*floor((size(Grp(a).pos{b,c},1)-2)/2)+1])));
+                    Grp(a).vel{b,c}(:,d,e) = gradient(sgolayfilt(Grp(a).pos{b,c}(:,d,e),2,min([19,2*floor((size(Grp(a).pos{b,c},1)-2)/2)+1])),dt);
                 end
             end
         end

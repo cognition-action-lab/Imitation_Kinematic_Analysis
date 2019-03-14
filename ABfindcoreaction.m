@@ -54,7 +54,7 @@ ItemNumbers = -1;
 CtlNumbers = -1;
 PatNumbers = -1;
 
-inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: '},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S0000'},'on');
+inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: '},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S000'},'on');
 
 %parse the block number/names
 BlockNumbers = str2num(inputVals{1}); %see if the blocks were entered numerically
@@ -106,7 +106,7 @@ end
 
 %parse the control subjects
 CtlNumbers = inputVals{3};
-if isempty(CtlNumbers) || str2num(CtlNumbers) == 0
+if isempty(CtlNumbers) || (~isempty(str2num(CtlNumbers)) && any(str2num(CtlNumbers) == 0))
     CtlNumbers = 0;
 elseif strcmpi(CtlNumbers,'-1 or S000') %asked to search for all valid options
     CtlNumbers = []; 
@@ -127,7 +127,7 @@ end
 
 %parse the patient numbers
 PatNumbers = inputVals{4};
-if isempty(PatNumbers) || str2num(PatNumbers) == 0
+if isempty(PatNumbers) || (~isempty(str2num(PatNumbers)) && any(str2num(PatNumbers) == 0))
     PatNumbers = 0;
 elseif strcmpi(PatNumbers,'-1 or S000') %asked to search for all valid options
     PatNumbers = [];
@@ -187,7 +187,7 @@ for blk = BlockNumbers %specify which blocks to mark
         end
     end
     if (length(BlockData{blk}.Grp) >= 2 && ~isempty(BlockData{blk}.Grp(2).Subjects))
-        if CtlNumbers == 0
+        if ~iscell(CtlNumbers) && any(CtlNumbers == 0)
             CtlNumbers = [];
         elseif isempty(CtlNumbers) || ~iscell(CtlNumbers)
             if isempty(CtlNumbers) || all(CtlNumbers == -1)
@@ -211,7 +211,7 @@ for blk = BlockNumbers %specify which blocks to mark
         CtlInds = [];  %no data exists, so we will skip it
     end
     if (length(BlockData{blk}.Grp) >= 3 && ~isempty(BlockData{blk}.Grp(3).Subjects))
-        if PatNumbers == 0
+        if ~iscell(PatNumbers) && any(PatNumbers == 0)
             PatNumbers = [];
         elseif isempty(PatNumbers) || ~iscell(PatNumbers)
             if isempty(PatNumbers) || all(PatNumbers == -1)
@@ -234,10 +234,10 @@ for blk = BlockNumbers %specify which blocks to mark
     end
     
     
-    if isfield(BlockData{blk},'Mdl') && isfield(BlockData{blk}.Grp(1).Data(1),'inds')
+    if isfield(BlockData{blk},'Grp') && isfield(BlockData{blk}.Grp(1),'inds') && ~isempty(BlockData{blk}.Grp(1).inds)
         domarkmodel = input('Remark Model? (Y = 1, N = 0): ');
     end
-    if (~domarkmodel) && (isfield(BlockData{blk},'Mdl') && isfield(BlockData{blk}.Grp(1).Data(1),'inds'))
+    if (~domarkmodel) && (isfield(BlockData{blk},'Grp') && isfield(BlockData{blk}.Grp(1),'inds')) && ~isempty(BlockData{blk}.Grp(1).inds)
         showmarkmodel = input('Show Model? (Y = 1, N = 0): ');
     end
     
@@ -258,7 +258,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 inds{2} = BlockData{blk}.Grp(1).inds(1,c).SubAction;
             end
             if isempty(inds{1}) && isempty(inds{2})
-                inds = addmarks(BlockData{blk}.Grp(1).pos{1,c},BlockData{blk}.Grp(1).vel{1,c});
+                if (blk == 1 && any([4 8 10 13 14] == c))
+                    %items deemed to have a clear pause
+                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throw');
+                else
+                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
+                end
             end
             
             inds = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
@@ -278,7 +283,7 @@ for blk = BlockNumbers %specify which blocks to mark
             if ~isfield(BlockData{blk}.Grp(1),'inds') || (length(BlockData{blk}.Grp(1).inds)<c) || ~isfield(BlockData{blk}.Grp(1).inds(1,c),'Full') || isempty(BlockData{blk}.Grp(1).inds(1,c).Full) || all(isnan(BlockData{blk}.Grp(1).inds(1,c).Full))
                 inds{1} = [];
             else
-                inds{1} = BlockData{blk}.Grp(1).inds(b,c).Full;
+                inds{1} = BlockData{blk}.Grp(1).inds(1,c).Full;
             end
             if ~isfield(BlockData{blk}.Grp(1),'inds') || (length(BlockData{blk}.Grp(1).inds)<c) || ~isfield(BlockData{blk}.Grp(1).inds(1,c),'SubAction') || isempty(BlockData{blk}.Grp(1).inds(1,c).SubAction) || all(isnan(BlockData{blk}.Grp(1).inds(1,c).SubAction))
                 inds{2} = [];
@@ -287,7 +292,12 @@ for blk = BlockNumbers %specify which blocks to mark
             end
             
             if isempty(inds{1}) && isempty(inds{2})
-                inds = addmarks(BlockData{blk}.Grp(1).pos{1,c},BlockData{blk}.Grp(1).vel{1,c});
+                if (blk == 1 && any([4 8 10 13 14] == c))
+                    %items deemed to have a clear pause
+                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throw');
+                else
+                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
+                end
             end
 
             tmp = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
@@ -334,7 +344,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 end
                 
                 if isempty(inds{1}) && isempty(inds{2})
-                    inds = addmarks(BlockData{blk}.Grp(2).pos{b,c},BlockData{blk}.Grp(2).vel{b,c});
+                    if (blk == 1 && any([4 8 10 13 14] == c))
+                        %items deemed to have a clear pause
+                        inds = addmarks(BlockData{blk}.Grp(2).vel{b,c},'throw');
+                    else
+                        inds = addmarks(BlockData{blk}.Grp(2).vel{b,c});
+                    end
                 end
 
                 inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds);
@@ -377,7 +392,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 end
                 
                 if isempty(inds{1}) && isempty(inds{2})
-                    inds = addmarks(BlockData{blk}.Grp(3).pos{b,c},BlockData{blk}.Grp(3).vel{b,c});
+                    if (blk == 1 && any([4 8 10 13 14] == c))
+                        %items deemed to have a clear pause
+                        inds = addmarks(BlockData{blk}.Grp(3).vel{b,c},'throw');
+                    else
+                        inds = addmarks(BlockData{blk}.Grp(3).vel{b,c});
+                    end
                 end
                 
                 inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds);

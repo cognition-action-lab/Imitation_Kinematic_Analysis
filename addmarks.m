@@ -1,12 +1,15 @@
 %code to automatically identify some initial marks for a gesture based on a
 %velocity threshold. 
 
-function ind = addmarks(pos,vel,varargin)
+function ind = addmarks(vel,varargin)
 
-%cm/s threshold
-vthresh = 0.1;
-vthreshMin = 0.05;
-NchanAgree = 3;
+
+vthresh = 40;      %cm/s threshold
+vthreshMin = 10;    %cm/s threshold
+NchanAgree = 4;     %number of channels that have to meet the threshold
+tcombine = 8;      %duration within which sections will be combined
+throwfirst = 0;     %flag to throw out the first set of marks
+throwlast = 0;      %flag to throw out the last set of marks
 
 a = 0;
 while a < length(varargin)
@@ -20,7 +23,21 @@ while a < length(varargin)
         case 'Nchan'
             NchanAgree = varargin{a+1};
             a = a+2;
+        case 'tcombine'
+            tcombine = varargin{a+1};
+            a = a+2;
+        case 'throw'
+            throwfirst = 1;
+            throwlast = 1;
+            a = a+1;
+        case 'throwfirst'
+            throwfirst = 1;
+            a = a+1;
+        case 'throwlast'
+            throwlast = 1;
+            a = a+1;
         otherwise
+            disp('Unrecognized input')
             a = a+1;
     end
 end
@@ -39,14 +56,14 @@ end
 velidless = sort([velidless; velidless-1]);
 velidless = [velidless(2:end); length(veliless)];
 veliless = veliless(velidless); %now i have the start and end indices of all reaches exceeding vthreshMax
-for a = 1:2:length(veliless)
-    if (veliless(a+1)-veliless(a)) < 3 %if the start/end marks are too close, throw this out! alternatively maybe merge them?
+for a = 1:length(veliless)-1
+    if abs(veliless(a+1)-veliless(a)) < tcombine %if the start/end marks are too close, throw them out! alternatively maybe merge them?
         veliless(a) = NaN;
         veliless(a+1) = NaN;
     end
 end
 veliless = veliless(~isnan(veliless));
-if mod(veliless,2) ~= 0
+if mod(length(veliless),2) ~= 0
     %we hopefully now have an even number of marks...  if not we have to
     %fix this! we could get an isolated mark if the mark has both high or
     %both low peak velocities on both sides. if we find this case, we will
@@ -60,7 +77,7 @@ if mod(veliless,2) ~= 0
         end
     end
 end
-if mod(veliless,2) ~= 0
+if mod(length(veliless),2) ~= 0
     %if we still haven't fixed the problem, we'll just return what we can
     if length(veliless) > 3
         ind{1} = [veliless(1) veliless(end)];
@@ -73,7 +90,7 @@ if mod(veliless,2) ~= 0
     end
     return;
 end
-    
+
 
 veli = [1; veliless; size(vel3d,1)];
 
@@ -82,21 +99,25 @@ veli = [1; veliless; size(vel3d,1)];
 
 %within each pair, we will search for the index of the minimum velocity
 i = 1;
+clear velimin;
 for a = 1:2:length(veli)
     
     vsection = vel3d(veli(a):veli(a+1),:);
+    [~,imin] = min(sum(vsection,2));
     if (a < length(veli)-1) %if we're not on the last pair, find a start
-        iminfirst = find(sum(vsection < vthreshMin,2)>=NchanAgree,1,'last');
+        %iminfirst = find(sum(vsection < vthreshMin,2)>=NchanAgree,1,'last');
+        iminfirst = find(sum(vsection(imin:end,:) > vthreshMin,2)>=NchanAgree,1,'first');
         if isempty(iminfirst)
             [~,iminfirst] = min(vsection);
         end
-        velimin(i,2) = veli(a)+ iminfirst-1;
+        velimin(i,2) = veli(a)+ imin + iminfirst-1;
     else
         velimin(i,2) = NaN;
     end
     
     if (a > 1)
-        iminlast = find(sum(vsection < vthreshMin,2)>=NchanAgree,1,'first');
+        %iminlast = find(sum(vsection < vthreshMin,2)>=NchanAgree,1,'first');
+        iminlast = find(sum(vsection(1:imin,:) > vthreshMin,2)>=NchanAgree,1,'last');
         if isempty(iminlast)
             [~,iminlast] = min(vsection);
         end
@@ -108,17 +129,40 @@ for a = 1:2:length(veli)
     
 end
 velimin = [velimin(1:end-1,2) velimin(2:end,1)]; %these are the indices of velocity starts and ends
+for a = 2:size(velimin,1)
+    if abs(velimin(a,1)-velimin(a-1,2)) < (tcombine/3) %if successive start/end marks are too close, throw them out! alternatively maybe merge them?
+        velimin(a,1) = NaN;
+        velimin(a-1,2) = NaN;
+    end
+end
+tmp = velimin;
+velimin = tmp(~isnan(tmp(:,1)),1);
+velimin(:,2) = tmp(~isnan(tmp(:,2)),2);
 
-if size(velimin,1) > 2
-    %we will throw out the first pair and last pair, which represent the
-    %initial and final phase of the action and not the "core" action
-    ind{1} = [velimin(2,1); velimin(end-1,2)];
-    ind{2} = unique(sort(reshape([velimin(3:end-1,1); velimin(2:end-2,2)],[],1)));
-elseif size(velimin,1) > 1
+if throwfirst && size(velimin) > 2
+    velimin(1,:) = [];
+end
+if throwlast && size(velimin) > 2
+    velimin(end,:) = [];
+end
+
+
+% if size(velimin,1) > 2
+% %     %we will throw out the first pair and last pair, which represent the
+% %     %initial and final phase of the action and not the "core" action
+% %     ind{1} = [velimin(2,1); velimin(end-1,2)];
+% %     ind{2} = unique(sort(reshape([velimin(3:end-1,1); velimin(2:end-2,2)],[],1)));
+%     
+%     %if we want to preserve the first pair
+%     ind{1} = [velimin(1,1); velimin(end,2)];
+%     ind{2} = unique(sort(reshape([velimin(2:end,1); velimin(1:end-1,2)],[],1)));
+%     
+% else
+if size(velimin,1) > 1
     ind{1} = [velimin(1,1); velimin(end,2)];
     ind{2} = unique(sort(reshape([velimin(2:end,1); velimin(1:end-1,2)],[],1)));
 else
-    ind{1} = velimin';  %this might even be empty!
+    ind{1} = velimin';  %even this might be empty!
     ind{2} = [];
 end
 

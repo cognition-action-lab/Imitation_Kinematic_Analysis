@@ -11,8 +11,8 @@ tcombine = 8;      %duration within which sections will be combined
 throwfirst = 0;     %flag to throw out the first set of marks
 throwlast = 0;      %flag to throw out the last set of marks
 
-a = 0;
-while a < length(varargin)
+a = 1;
+while a <= length(varargin)
     switch(varargin{a})
         case 'vthresh'
             vthresh = varargin{a+1};
@@ -139,10 +139,10 @@ tmp = velimin;
 velimin = tmp(~isnan(tmp(:,1)),1);
 velimin(:,2) = tmp(~isnan(tmp(:,2)),2);
 
-if throwfirst && size(velimin) > 2
+if throwfirst && size(velimin,1) > 2
     velimin(1,:) = [];
 end
-if throwlast && size(velimin) > 2
+if throwlast && size(velimin,1) > 2
     velimin(end,:) = [];
 end
 
@@ -161,6 +161,11 @@ end
 if size(velimin,1) > 1
     ind{1} = [velimin(1,1); velimin(end,2)];
     ind{2} = unique(sort(reshape([velimin(2:end,1); velimin(1:end-1,2)],[],1)));
+    if length(ind{2}) > 2
+        ind{2}(1) = [];
+        ind{2}(end) = [];
+    end
+    
 else
     ind{1} = velimin';  %even this might be empty!
     ind{2} = [];

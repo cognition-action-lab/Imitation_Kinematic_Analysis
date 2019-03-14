@@ -801,49 +801,35 @@ xlabel('x');
 ylabel('y');
 zlabel('z');
 
-axes(handles.axes2)
-cla(handles.axes2);
-set(handles.axes2,'NextPlot','add');
-h = plot(handles.joint.shoulder,'-');
-set(h,'HitTest','off')
-hold on
-for a = 1:length(inds{1})
-    h = plot([inds{1}(a) inds{1}(a)],get(gca,'ylim'),'r-');
-    set(h,'HitTest','off')
-end
-for a = 1:length(inds{2})
-    h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
-    set(h,'HitTest','off')
-end
-h = plot([c c],get(gca,'ylim'),'k:');
-set(h,'HitTest','off','LineWidth',1.5)
-hold off;
-ylabel('shoulder')
-
 if isempty(handles.ctp)
     
-    axes(handles.axes3)
-    cla(handles.axes3);
-    set(handles.axes3,'NextPlot','add');
+    axes(handles.axes2)
+    cla(handles.axes2);
+    set(handles.axes2,'NextPlot','add');
     h = plot(handles.joint.elbow,'-');
-    set(h,'HitTest','off');
+    set(h,'HitTest','off')
     hold on
     for a = 1:length(inds{1})
         h = plot([inds{1}(a) inds{1}(a)],get(gca,'ylim'),'r-');
         set(h,'HitTest','off')
     end
     for a = 1:length(inds{2})
-        h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        if mod(a,2) ~= 0
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        else
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b--');
+            set(h,'Color',[0 0 .5]);
+        end
         set(h,'HitTest','off')
     end
     h = plot([c c],get(gca,'ylim'),'k:');
-    set(h,'HitTest','off','LineWidth',1.5);
+    set(h,'HitTest','off','LineWidth',1.5)
     hold off;
     ylabel('elbow')
     
-    axes(handles.axes4)
-    cla(handles.axes4);
-    set(handles.axes4,'NextPlot','add');
+    axes(handles.axes3)
+    cla(handles.axes3);
+    set(handles.axes3,'NextPlot','add');
     h = plot(handles.joint.wrist,'-');
     set(h,'HitTest','off');
     hold on
@@ -852,13 +838,43 @@ if isempty(handles.ctp)
         set(h,'HitTest','off')
     end
     for a = 1:length(inds{2})
-        h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        %h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        if mod(a,2) ~= 0
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        else
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b--');
+            set(h,'Color',[0 0 .5]);
+        end
         set(h,'HitTest','off')
     end
     h = plot([c c],get(gca,'ylim'),'k:');
     set(h,'HitTest','off','LineWidth',1.5);
     hold off;
     ylabel('wrist')
+    
+    axes(handles.axes4)
+    cla(handles.axes4);
+    set(handles.axes4,'NextPlot','add');
+    h = plot(handles.joint.hand,'-');
+    set(h,'HitTest','off');
+    hold on
+    for a = 1:length(inds{1})
+        h = plot([inds{1}(a) inds{1}(a)],get(gca,'ylim'),'r-');
+        set(h,'HitTest','off')
+    end
+    for a = 1:length(inds{2})
+        if mod(a,2) ~= 0
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        else
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b--');
+            set(h,'Color',[0 0 .5]);
+        end
+        set(h,'HitTest','off')
+    end
+    h = plot([c c],get(gca,'ylim'),'k:');
+    set(h,'HitTest','off','LineWidth',1.5);
+    hold off;
+    ylabel('hand')
     
     axes(handles.axes5)
     cla(handles.axes5);
@@ -871,7 +887,12 @@ if isempty(handles.ctp)
         set(h,'HitTest','off')
     end
     for a = 1:length(inds{2})
-        h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        if mod(a,2) ~= 0
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        else
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b--');
+            set(h,'Color',[0 0 .5]);
+        end
         set(h,'HitTest','off')
     end
     h = plot([c c],get(gca,'ylim'),'k:');
@@ -890,18 +911,44 @@ if isempty(handles.ctp)
         set(h,'HitTest','off')
     end
     for a = 1:length(inds{2})
-        h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        if mod(a,2) ~= 0
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        else
+            h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b--');
+            set(h,'Color',[0 0 .5]);
+        end
         set(h,'HitTest','off')
     end
     h = plot([c c],get(gca,'ylim'),'k:');
     set(h,'HitTest','off','LineWidth',1.5);
     hold off;
     ylabel('thumb')
-else %plot ctp data instead of raw data
+    
+else %plot transformed arm data instead of raw data
+    
+    axes(handles.axes2)
+    cla(handles.axes2);
+    set(handles.axes2,'NextPlot','add');
+    h = plot(handles.ctp(:,5:7),'-');
+    set(h,'HitTest','off');
+    hold on
+    for a = 1:length(inds{1})
+        h = plot([inds{1}(a) inds{1}(a)],get(gca,'ylim'),'r-');
+        set(h,'HitTest','off')
+    end
+    for a = 1:length(inds{2})
+        h = plot([inds{2}(a) inds{2}(a)],get(gca,'ylim'),'b-.');
+        set(h,'HitTest','off')
+    end
+    h = plot([c c],get(gca,'ylim'),'k:');
+    set(h,'HitTest','off','LineWidth',1.5);
+    hold off;
+    ylabel('arm plane (phi,theta,psi)')
+    
     axes(handles.axes3)
     cla(handles.axes3);
     set(handles.axes3,'NextPlot','add');
-    h = plot(handles.ctp(:,7),'-');
+    h = plot(handles.ctp(:,8),'-');
     set(h,'HitTest','off');
     hold on
     for a = 1:length(inds{1})
@@ -920,7 +967,7 @@ else %plot ctp data instead of raw data
     axes(handles.axes4)
     cla(handles.axes4);
     set(handles.axes4,'NextPlot','add');
-    h = plot(handles.ctp(:,5:6),'-');
+    h = plot(handles.ctp(:,9),'-');
     set(h,'HitTest','off');
     hold on
     for a = 1:length(inds{1})
@@ -934,7 +981,8 @@ else %plot ctp data instead of raw data
     h = plot([c c],get(gca,'ylim'),'k:');
     set(h,'HitTest','off','LineWidth',1.5);
     hold off;
-    ylabel('arm plane (phi,theta)')
+    ylabel('wrist ang')
+    
     
     axes(handles.axes5)
     cla(handles.axes5);
@@ -973,7 +1021,6 @@ else %plot ctp data instead of raw data
     set(h,'HitTest','off','LineWidth',1.5);
     hold off;
     ylabel('thumb curv/tors')
-    
     
 end
 

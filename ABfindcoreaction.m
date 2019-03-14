@@ -258,12 +258,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 inds{2} = BlockData{blk}.Grp(1).inds(1,c).SubAction;
             end
             if isempty(inds{1}) && isempty(inds{2})
-                if (blk == 1 && any([4 8 10 13 14] == c))
+                %if (blk == 1 && any([4 8 10 13 14] == c))
                     %items deemed to have a clear pause
                     inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throw');
-                else
-                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
-                end
+                %else
+                %    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
+                %end
             end
             
             inds = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
@@ -292,12 +292,12 @@ for blk = BlockNumbers %specify which blocks to mark
             end
             
             if isempty(inds{1}) && isempty(inds{2})
-                if (blk == 1 && any([4 8 10 13 14] == c))
+                %if (blk == 1 && any([4 8 10 13 14] == c))
                     %items deemed to have a clear pause
                     inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throw');
-                else
-                    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
-                end
+                %else
+                %    inds = addmarks(BlockData{blk}.Grp(1).vel{1,c});
+                %end
             end
 
             tmp = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds);
@@ -344,12 +344,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 end
                 
                 if isempty(inds{1}) && isempty(inds{2})
-                    if (blk == 1 && any([4 8 10 13 14] == c))
+                    %if (blk == 1 && any([4 8 10 13 14] == c))
                         %items deemed to have a clear pause
                         inds = addmarks(BlockData{blk}.Grp(2).vel{b,c},'throw');
-                    else
-                        inds = addmarks(BlockData{blk}.Grp(2).vel{b,c});
-                    end
+                    %else
+                    %    inds = addmarks(BlockData{blk}.Grp(2).vel{b,c});
+                    %end
                 end
 
                 inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds);
@@ -392,12 +392,12 @@ for blk = BlockNumbers %specify which blocks to mark
                 end
                 
                 if isempty(inds{1}) && isempty(inds{2})
-                    if (blk == 1 && any([4 8 10 13 14] == c))
+                    %if (blk == 1 && any([4 8 10 13 14] == c))
                         %items deemed to have a clear pause
                         inds = addmarks(BlockData{blk}.Grp(3).vel{b,c},'throw');
-                    else
-                        inds = addmarks(BlockData{blk}.Grp(3).vel{b,c});
-                    end
+                    %else
+                    %    inds = addmarks(BlockData{blk}.Grp(3).vel{b,c});
+                    %end
                 end
                 
                 inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds);

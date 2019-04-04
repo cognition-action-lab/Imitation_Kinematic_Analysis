@@ -69,7 +69,7 @@ function varargout = markdataGUI(varargin)
 
 % Edit the above text to modify the response to help markdataGUI
 
-% Last Modified by GUIDE v2.5 26-Feb-2019 16:19:32
+% Last Modified by GUIDE v2.5 04-Apr-2019 17:02:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -480,6 +480,24 @@ if ~isempty(allinds)
     updateplot(handles);
     
 end
+
+
+% --- Executes on button press in pushbutton7.
+function pushbutton7_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+inds = getappdata(handles.figure1,'inds');
+MarkType = getappdata(handles.figure1,'MarkType');
+
+inds{MarkType} = [];
+
+setappdata(handles.figure1,'inds',inds);
+
+updateplot(handles);
+
+
 
 
 
@@ -1153,3 +1171,6 @@ setappdata(handles.figure1,'c',c);
 set(handles.slider1,'Value',c);
     
 updateplot(handles);
+
+
+

@@ -280,6 +280,6 @@ clear tmp* fname;
 if ~isempty(datafname) && all(datafname ~= 0)
     save(fullfile(datafpath,datafname),'BlockData');
 else
-    uisave('BlockData',,'compiled_data.mat');
+    uisave('BlockData','compiled_data.mat');
 end
 

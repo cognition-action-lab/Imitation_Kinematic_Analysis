@@ -48,14 +48,30 @@ vel3d = squeeze(sqrt(sum(vel.^2,2)));
 %agreement across at least N channels
 vless = vel3d > vthresh;
 vless = sum(vless,2) >= NchanAgree;
+if ~any(vless)
+    vless = vel3d > vthresh;
+    vless = sum(vless,2) > 1;
+    if ~any(vless)
+        vless = vel3d > vthresh;
+        vless = sum(vless,2) > 0;
+    end
+end
 veliless = find(vless == 1);
 velidless = find(diff([0; veliless])>1); %now i have the indices into veli of all the starts of all reaches exceeding vthreshMax
 if isempty(velidless)
-    velidless = veliless(1);
+    if ~isempty(veliless)
+        velidless = veliless(1);
+    else
+        velidless = [];
+    end
 end
 velidless = sort([velidless; velidless-1]);
 velidless = [velidless(2:end); length(veliless)];
-veliless = veliless(velidless); %now i have the start and end indices of all reaches exceeding vthreshMax
+if ~isempty(veliless)
+    veliless = veliless(velidless); %now i have the start and end indices of all reaches exceeding vthreshMax
+else
+    veliless = [];
+end
 for a = 1:length(veliless)-1
     if abs(veliless(a+1)-veliless(a)) < tcombine %if the start/end marks are too close, throw them out! alternatively maybe merge them?
         veliless(a) = NaN;

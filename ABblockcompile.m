@@ -53,7 +53,7 @@ for a = 1:size(filename,1)
     [blockind,trialID,item,BlockName,SubjID,Group] = decodetrials(pathname,filename(a).name);
     %assume blockname, SubjID, and Group are the same for every trial in this folder.
 
-    if contains(filename(a).name,'multiple')  %we make the strong assumption that if the filename contains "multiple" it was an old recording with the upsidedown transmitter configuration
+    if contains(filename(a).name,'multiple') || contains(filename(a).name,'sub41') || contains(filename(a).name,'sub116') || contains(filename(a).name,'sub345')  %we make the strong assumption that if the filename contains "multiple" it was an old recording with the upsidedown transmitter configuration
         trackerconfigtype = 2;
     else %we assume that otherwise it was recorded using the wide-range transmitter setup
         trackerconfigtype = 1;

@@ -10,6 +10,7 @@ NchanAgree = 4;     %number of channels that have to meet the threshold
 tcombine = 8;      %duration within which sections will be combined
 throwfirst = 0;     %flag to throw out the first set of marks
 throwlast = 0;      %flag to throw out the last set of marks
+throwmid = 0;
 
 a = 1;
 while a <= length(varargin)
@@ -35,6 +36,9 @@ while a <= length(varargin)
             a = a+1;
         case 'throwlast'
             throwlast = 1;
+            a = a+1;
+        case 'throwmid'
+            throwmid = 1;
             a = a+1;
         otherwise
             disp('Unrecognized input')
@@ -187,7 +191,9 @@ else
     ind{2} = [];
 end
 
-
+if throwmid == 1
+    ind{2} = [];
+end
 
 % %at the individual sensor level
 % for b = 1:size(vel3d,2)

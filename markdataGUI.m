@@ -106,6 +106,7 @@ inds = cell(1,2);
 nmarkers = [];
 handles.ctp = [];
 ma = [];
+subenable = 1;
 
 i = 2;
 while i <= length(varargin)
@@ -167,9 +168,17 @@ while i <= length(varargin)
                 end
             end
             i = i+2;
+        case 'full' %disable the subaction option
+            subenable = 0;
         otherwise
             i = i+1;
     end
+end
+
+if subenable == 0
+    set(handles.radiobutton2,'enable','off');
+else%if subenable == 1
+    set(handles.radiobutton2,'enable','on');
 end
 
 if ~isstruct(m)

@@ -69,7 +69,7 @@ function varargout = markdataGUI(varargin)
 
 % Edit the above text to modify the response to help markdataGUI
 
-% Last Modified by GUIDE v2.5 04-Apr-2019 17:02:38
+% Last Modified by GUIDE v2.5 23-Sep-2019 17:03:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -170,6 +170,7 @@ while i <= length(varargin)
             i = i+2;
         case 'full' %disable the subaction option
             subenable = 0;
+            i = i+1;
         otherwise
             i = i+1;
     end
@@ -1180,6 +1181,3 @@ setappdata(handles.figure1,'c',c);
 set(handles.slider1,'Value',c);
     
 updateplot(handles);
-
-
-

@@ -11,6 +11,8 @@ tcombine = 8;      %duration within which sections will be combined
 throwfirst = 0;     %flag to throw out the first set of marks
 throwlast = 0;      %flag to throw out the last set of marks
 throwmid = 0;
+%NchanWeight = [0.75 0.75 0.75 1.25 1.5 1.75 1 1]; %weighting on the channels, to weight agreement between the larger joints more than the fingers
+NchanWeight = ones(1,8); %weighting on the channels, to weight agreement between the larger joints more than the fingers
 
 a = 1;
 while a <= length(varargin)
@@ -23,6 +25,9 @@ while a <= length(varargin)
             a = a+2;
         case 'Nchan'
             NchanAgree = varargin{a+1};
+            a = a+2;
+        case 'NchanWeight'
+            NchanWeight = varargin{a+1};
             a = a+2;
         case 'tcombine'
             tcombine = varargin{a+1};
@@ -51,6 +56,7 @@ vel3d = squeeze(sqrt(sum(vel.^2,2)));
 
 %agreement across at least N channels
 vless = vel3d > vthresh;
+vless = vless.*NchanWeight;
 vless = sum(vless,2) >= NchanAgree;
 if ~any(vless)
     vless = vel3d > vthresh;

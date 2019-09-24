@@ -56,8 +56,9 @@ BlockNumbers = -1;
 ItemNumbers = -1;
 CtlNumbers = -1;
 PatNumbers = -1;
+ClearMarks = -1;
 
-inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: '},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S000'},'on');
+inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: ','Clear Existing Marks (1 = Yes, 0 = No)'},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S000','1'},'on');
 
 %parse the block number/names
 BlockNumbers = str2num(inputVals{1}); %see if the blocks were entered numerically
@@ -149,6 +150,12 @@ else %subject ID numbers entered
     PatNumbers = cn;
 end
 
+ClearMarks = str2num(inputVals{5});
+if isempty(ClearMarks)
+    ClearMarks = 0;
+elseif ClearMarks > 0
+    ClearMarks = 1;
+end
 
 
 %% ***********************************************************************
@@ -260,8 +267,8 @@ for blk = BlockNumbers %specify which blocks to mark
             %else
             %    inds{2} = BlockData{blk}.Grp(1).inds(1,c).SubAction;
             %end
-            if isempty(inds{1}) && isempty(inds{2})
-                inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throwmid');
+            if isempty(inds{1}) && isempty(inds{2}) || ClearMarks == 1
+                inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'Nchan',2,'vthreshMin',8,'throwmid');
             end
             
             inds = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds,'full');
@@ -290,7 +297,7 @@ for blk = BlockNumbers %specify which blocks to mark
             %end
             
             if isempty(inds{1}) && isempty(inds{2})
-                inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'throwmid');
+                inds = addmarks(BlockData{blk}.Grp(1).vel{1,c},'Nchan',2,'vthreshMin',8,'throwmid');
             end
 
             tmp = markdataGUI(BlockData{blk}.Grp(1).pos{1,c},'title',sprintf('Model: %s',BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(1).ang{1,c},'mark',inds,'full');
@@ -336,8 +343,8 @@ for blk = BlockNumbers %specify which blocks to mark
                 %    inds{2} = BlockData{blk}.Grp(2).inds(b,c).SubAction;
                 %end
                 
-                if isempty(inds{1}) && isempty(inds{2})
-                    inds = addmarks(BlockData{blk}.Grp(2).vel{b,c},'throwmid');
+                if isempty(inds{1}) && isempty(inds{2}) || ClearMarks == 1
+                    inds = addmarks(BlockData{blk}.Grp(2).vel{b,c},'Nchan',2,'vthreshMin',8,'throwmid');
                 end
 
                 inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds,'full');
@@ -379,8 +386,8 @@ for blk = BlockNumbers %specify which blocks to mark
                 %    inds{2} = BlockData{blk}.Grp(3).inds(b,c).SubAction;
                 %end
                 
-                if isempty(inds{1}) && isempty(inds{2})
-                    inds = addmarks(BlockData{blk}.Grp(3).vel{b,c},'throwmid');
+                if isempty(inds{1}) && isempty(inds{2}) || ClearMarks == 1
+                    inds = addmarks(BlockData{blk}.Grp(3).vel{b,c},'Nchan',2,'vthreshMin',8,'throwmid');
                 end
                 
                 inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds,'full');

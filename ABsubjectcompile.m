@@ -78,7 +78,8 @@ for a = 1:length(SUBJpaths)
             BlockData{b}.BlockName = tmp.BlockData{b}.BlockName;
             BlockData{b}.Items = tmp.BlockData{b}.Items;
             BlockData{b}.Grp(1).Subjects{1} = '0';
-            BlockData{b}.Grp(1).SubjN = 0; 
+            BlockData{b}.Grp(1).SubjN = 0;
+            BlockData{b}.Grp(1).SubjRep = 1;
             
         end
         
@@ -89,13 +90,15 @@ for a = 1:length(SUBJpaths)
                 continue;
             end
             
-            if ~isfield(BlockData{b}, 'Grp') || isempty(BlockData{b}.Grp(2)) || ~isfield(BlockData{b}.Grp(2),'Subjects') || isempty(BlockData{b}.Grp(2).Subjects)
+            if ~isfield(BlockData{b}, 'Grp') || length(BlockData{b}.Grp) < 2 || isempty(BlockData{b}.Grp(2)) || ~isfield(BlockData{b}.Grp(2),'Subjects') || isempty(BlockData{b}.Grp(2).Subjects)
                 %first subject in this group
                 ictl = 1;
+                repn = 1;
                 
             elseif all(~strcmpi(BlockData{b}.Grp(2).Subjects, tmp.BlockData{b}.SubjID))
                 %add a new subject to this group
                 ictl = length(BlockData{b}.Grp(2).Subjects)+1;
+                repn = 1;
                 
             elseif any(strcmpi(BlockData{b}.Grp(2).Subjects, tmp.BlockData{b}.SubjID))
                 %subject exists in this group, decide what to do:
@@ -105,13 +108,17 @@ for a = 1:length(SUBJpaths)
                     if length(duplicates) > 1
                         whichentry = input(sprintf(' %d entries exist for %s. Select which to overwrite: ',length(duplicates),tmp.BlockData{b}.SubjID));
                         ictl = duplicates(whichentry);
+                        repn = BlockData{b}.Grp(2).SubjRep(ictl);
                     else
                     	ictl = duplicates;
                         fprintf('  Existing entry of Subject %s overwritten.\n',tmp.BlockData{b}.SubjID);
+                        repn = 1;
                     end
                 elseif strcmpi(dorep,'n') %add a new entry
                     ictl = length(BlockData{b}.Grp(2).Subjects)+1;
                     fprintf('  Subject %s duplicate entry created.\n',tmp.BlockData{b}.SubjID);
+                    duplicates = find(strcmpi(BlockData{b}.Grp(2).Subjects, tmp.BlockData{b}.SubjID) == 1); %find( == tmp.BlockData{b}.SubjID);
+                    repn = length(duplicates)+1;
                 else 
                     fprintf('  Subject %s skipped.\n',tmp.BlockData{b}.SubjID);
                     continue;
@@ -142,6 +149,7 @@ for a = 1:length(SUBJpaths)
             BlockData{b}.Items = tmp.BlockData{b}.Items;
             BlockData{b}.Grp(2).Subjects{ictl} = tmp.BlockData{b}.SubjID;      %record the subject ID to the list of subjects
             BlockData{b}.Grp(2).SubjN(ictl) = str2double(tmp.BlockData{b}.SubjID); 
+            BlockData{b}.Grp(2).SubjRep(ictl) = repn;
         end
         
     elseif strcmpi(tmp.Group,'patient')
@@ -151,13 +159,15 @@ for a = 1:length(SUBJpaths)
                 continue;
             end
             
-            if ~isfield(BlockData{b}, 'Grp') || isempty(BlockData{b}.Grp(3)) || ~isfield(BlockData{b}.Grp(3),'Subjects') || isempty(BlockData{b}.Grp(3).Subjects)
+            if ~isfield(BlockData{b}, 'Grp') || length(BlockData{b}.Grp) < 3 ||  isempty(BlockData{b}.Grp(3)) || ~isfield(BlockData{b}.Grp(3),'Subjects') || isempty(BlockData{b}.Grp(3).Subjects)
                 %first subject in this group
                 ipat = 1;
+                repn = 1;
                 
             elseif all(~strcmpi(BlockData{b}.Grp(3).Subjects, tmp.BlockData{b}.SubjID))
                 %add a new subject to this group
                 ipat = length(BlockData{b}.Grp(3).Subjects)+1;
+                repn = 1;
                 
             elseif any(strcmpi(BlockData{b}.Grp(3).Subjects, tmp.BlockData{b}.SubjID))
                 %subject exists in this group, decide what to do:
@@ -167,13 +177,18 @@ for a = 1:length(SUBJpaths)
                     if length(duplicates) > 1
                         whichentry = input(sprintf(' %d entries exist for %s. Select which to overwrite: ',length(duplicates),tmp.BlockData{b}.SubjID));
                         ipat = duplicates(whichentry);
+                        repn = BlockData{b}.Grp(3).SubjRep(ictl);
                     else
                     	ipat = duplicates;
                         fprintf('  Existing entry of Subject %s overwritten.\n',tmp.BlockData{b}.SubjID);
+                        repn = 1;
                     end
                 elseif strcmpi(dorep,'n') %add a new entry
                     ipat = length(BlockData{b}.Grp(3).Subjects)+1;
                     fprintf('  Subject %s duplicate entry created.\n',tmp.BlockData{b}.SubjID);
+                    duplicates = find(strcmpi(BlockData{b}.Grp(3).Subjects, tmp.BlockData{b}.SubjID) == 1);
+                    repn = length(duplicates)+1;
+                    
                 else 
                     fprintf('  Subject %s skipped.\n',tmp.BlockData{b}.SubjID);
                     continue;
@@ -204,6 +219,7 @@ for a = 1:length(SUBJpaths)
             BlockData{b}.Items = tmp.BlockData{b}.Items;
             BlockData{b}.Grp(3).Subjects{ipat} = tmp.BlockData{b}.SubjID;      %record the subject ID to the list of subjects
             BlockData{b}.Grp(3).SubjN(ipat) = str2double(tmp.BlockData{b}.SubjID); 
+            BlockData{b}.Grp(3).SubjRep(ictl) = repn;
         end
         
         

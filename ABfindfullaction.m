@@ -58,7 +58,7 @@ CtlNumbers = -1;
 PatNumbers = -1;
 ClearMarks = -1;
 
-inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: ','Clear Existing Marks (1 = Yes, 0 = No)'},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S000','1'},'on');
+inputVals = inputdlg({'Block Numbers/Names:','Item Numbers/Names:','Control Numbers: ','Patient Numbers: ','Clear Existing Marks (1 = Yes, 0 = No)'},'Input analysis parameters.',1,{'-1','-1','-1 or S000','-1 or S000','0'},'on');
 
 %parse the block number/names
 BlockNumbers = str2num(inputVals{1}); %see if the blocks were entered numerically
@@ -120,7 +120,7 @@ else %subject ID numbers entered
     tmps = strfind(lower(CtlNumbers),'s');
     tmpdelim = strfind(CtlNumbers,',');
     if length(tmps) > length(tmpdelim)
-        tmpdelim(end+1) = length(PatNumbers)+1;
+        tmpdelim(end+1) = length(CtlNumbers)+1;
     end
     cn = {};
     for a = 1:length(tmps)
@@ -208,12 +208,18 @@ for blk = BlockNumbers %specify which blocks to mark
             sinds = [];
             for a = 1:length(CtlNumbers)
                 
-                
                 tmpstrcmp = strcmpi(BlockData{blk}.Grp(2).Subjects, CtlNumbers{a});
                 if isempty(tmpstrcmp)
                     fprintf('  Control S%s not found.\n',CtlNumbers{a});
+                elseif sum(tmpstrcmp) > 1
+                    fprintf('  %d multiple entires found for Control S%s.\n',sum(tmpstrcmp), CtlNumbers{a});
+                    repn = input('    Enter which repetition(s) would you like to analyze: ','s');
+                    repn = str2num(repn);
+                    sreps = find(tmpstrcmp == 1);
+                    sinds = [sinds sreps(repn)];
+                else
+                    sinds = [sinds find(tmpstrcmp == 1)];
                 end
-                sinds = [sinds find(tmpstrcmp == 1)];
             end
             CtlInds = sinds;
         end
@@ -232,10 +238,18 @@ for blk = BlockNumbers %specify which blocks to mark
             sinds = [];
             for a = 1:length(PatNumbers)
                 tmpstrcmp = strcmpi(BlockData{blk}.Grp(3).Subjects, PatNumbers{a});
+                
                 if isempty(tmpstrcmp)
                     fprintf('  Patient S%s not found.\n',PatNumbers{a});
+                elseif sum(tmpstrcmp) > 1
+                    fprintf('  %d multiple entires found for Patient S%s.\n',sum(tmpstrcmp), PatNumbers{a});
+                    repn = input('    Enter which repetition(s) would you like to analyze: ','s');
+                    repn = str2num(repn);
+                    sreps = find(tmpstrcmp == 1);
+                    sinds = [sinds sreps(repn)];
+                else
+                    sinds = [sinds find(tmpstrcmp == 1)];
                 end
-                sinds = [sinds find(tmpstrcmp == 1)];
             end
             PatInds = sinds;
         end
@@ -328,7 +342,7 @@ for blk = BlockNumbers %specify which blocks to mark
                 
                 %fprintf('  Subject: %d\n',BlockData{blk}.Grp(2).subj(b));
                 if isempty(BlockData{blk}.Grp(2).pos{b,c})
-                    fprintf('Item %d not available for Subject %s',b,BlockData{blk}.Grp(2).Subjects{b});
+                    fprintf('Item %d not available for Subject %s - Rep %d',b,BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Grp(2).SubjRep(b));
                     continue;
                 end
                 
@@ -347,7 +361,7 @@ for blk = BlockNumbers %specify which blocks to mark
                     inds = addmarks(BlockData{blk}.Grp(2).vel{b,c},'Nchan',2,'vthreshMin',8,'throwmid');
                 end
 
-                inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds,'full');
+                inds = markdataGUI(BlockData{blk}.Grp(2).pos{b,c},'title',sprintf('S%s-Rep%d: %s',BlockData{blk}.Grp(2).Subjects{b},BlockData{blk}.Grp(2).SubjRep(b),BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(2).ang{b,c},'mark',inds,'full');
                 
                 if isempty(inds{1})
                     BlockData{blk}.Grp(2).inds(b,c).Full = [NaN NaN];
@@ -370,7 +384,7 @@ for blk = BlockNumbers %specify which blocks to mark
                 %fprintf('  Subject: %d\n',BlockData{blk}.Grp(3).subj(b));
                 
                 if isempty(BlockData{blk}.Grp(3).pos{b,c})
-                    fprintf('Item %d not available for Subject %s',b,BlockData{blk}.Grp(3).Subjects{b});
+                    fprintf('Item %d not available for Subject %s - Rep %d',b,BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Grp(3).SubjRep(b));
                     continue;
                 end
 
@@ -390,7 +404,7 @@ for blk = BlockNumbers %specify which blocks to mark
                     inds = addmarks(BlockData{blk}.Grp(3).vel{b,c},'Nchan',2,'vthreshMin',8,'throwmid');
                 end
                 
-                inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds,'full');
+                inds = markdataGUI(BlockData{blk}.Grp(3).pos{b,c},'title',sprintf('S%s-Rep%d: %s',BlockData{blk}.Grp(3).Subjects{b},BlockData{blk}.Grp(3).SubjRep(b),BlockData{blk}.Items{c}),'ang',BlockData{blk}.Grp(3).ang{b,c},'mark',inds,'full');
                 if isempty(inds{1})
                     BlockData{blk}.Grp(3).inds(b,c).Full = [NaN NaN];
                 else

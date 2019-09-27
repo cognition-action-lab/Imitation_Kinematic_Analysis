@@ -275,6 +275,6 @@ clear a b c d curdir i1 i2 ind tmp* varargin
 %     save([pathname 'S' tmpfname '_abdata' num2str(fappend) '.mat']);
 %     fprintf('\n\nFile saved: %s\n\n',['S' tmpfname '_abdata' num2str(fappend) '.mat']);
 % else
-    save([pathname 'S' SubjID '_data.mat'],'BlockData','filename','pathname','Group');  %BlockName 
+    save(fullfile(pathname, ['S' SubjID '_data.mat']),'BlockData','filename','pathname','Group');  %BlockName 
     fprintf('\n\nFile saved: %s\n\n',['S' SubjID '_data.mat']);  %BlockName
 % end

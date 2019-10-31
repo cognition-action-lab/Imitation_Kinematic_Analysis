@@ -142,13 +142,17 @@ scaletype = 'scalemeters';
 %%
 
 
-%resave the data to ensure that your marks have been recorded.
-tosave = input('Save file (note this may overwrite existing marked data files)? (Y = 1, N = 0): ');
-if (tosave)
+%save the data to ensure that your marks have been recorded.
+uisavefile('BlockData',fullfile(fpath,strrep(fname,'_data','_markdata')));
+
+
+%tosave = input('Save file (note this may overwrite existing marked data files)? (Y = 1, N = 0): ');
+%if (tosave)
     
-    save(fullfile(fpath,strrep(fname,'_data','_markdata')),'BlockData');
+    %save(fullfile(fpath,strrep(fname,'_data','_markdata')),'BlockData');
     
-end
+    
+%end
 
 
 

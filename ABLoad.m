@@ -15,60 +15,203 @@ temp = fgetl(fid);
 cols = textscan(temp,'%s');
 cols = cols{1};
 
-%didtime = 0;
-
-readstr = '';
-for a = 1:length(cols)
+if length(cols) <= 2
     
-%     if didtime == 1 && strcmp(lower(char(cols{a})),'time') == 1
-%         continue;
-%     end
+    filetype = 'aaron';
     
-    switch(lower(char(cols{a})))
-        case {'sub','session','block_type','trial','sample'}
-            readstr = [readstr '%d '];
-        otherwise
-            readstr = [readstr '%f '];
-    end
-end
-
-dvals = textscan(fid,readstr,inf);
-
-fclose(fid);
-
-%dvals quits as soon as it runs into an error. That means that if there are
-%an unequal number of columns, the last line is problably where the error
-%arose. So we will trim the remaining columns to match as a quick
-%workaround rather than having to diagnose the problem in the data file.
-minlength = inf;
-for a = 1:size(dvals,2)
-    if length(dvals{a}) < minlength
-        minlength = length(dvals{a});
-    end
-end
-for a = 1:size(dvals,2)
-    dvals{a} = dvals{a}(1:minlength);
-end
-
-
-didtime = 0;
-
-for a = 1:length(cols)
-    if didtime == 1 && strcmp(cols{a},'time') == 1
-        continue;
-    elseif didtime == 1 && strcmp(cols{a},'time') == 1
-        didtime = 1;
-    end
-    
-    if contains(cols{a},'m') && (contains(cols{a},'_x') || contains(cols{a},'_y') || contains(cols{a},'_z') || contains(cols{a},'_qual') || contains(cols{a},'_azim') || contains(cols{a},'_elev') || contains(cols{a},'_roll') || contains(cols{a},'_rotang'))
-        tmp1 = strfind(cols{a},'m');
-        tmp2 = strfind(cols{a},'_');
-        eval(sprintf('data.m(%s).%s = dvals{%d};',char(cols{a}(tmp1+1:tmp2-1)),char(cols{a}(tmp2+1:end)),a));
-    elseif strcmp(cols{a},'sub') || strcmp(cols{a},'session') || strcmp(cols{a},'block_type') || strcmp(cols{a},'trial')
-        eval(sprintf('data.%s = unique(dvals{%d});',char(cols{a}),a));
+    %this file has a header, we have to parse the header
+    hvals = textscan(temp,'%s %s');
+    if ~isempty(str2num(char(hvals{2}))) && ~contains(hvals{1},'sub','IgnoreCase',true)
+        hvals = textscan(temp,'%s %d');
+        tmp = strrep(char(hvals{1}),':','');
+        eval(sprintf('header.%s = %d;',tmp,hvals{2}));
     else
-        eval(sprintf('data.%s = dvals{%d};',char(cols{a}),a));
+        tmp = strrep(char(hvals{1}),':','');
+        tmp1 = strrep(char(hvals{2}),'.txt','');
+        eval(sprintf('header.%s = ''%s'';',tmp,char(tmp1)));
     end
+    
+    doloop = 1;
+    while (doloop)
+        temp = fgetl(fid);
+        if strcmp(temp,'--')
+            %detect the end of the header
+            temp = fgetl(fid);
+            header.cols = textscan(temp,'%s');
+            header.cols = header.cols{1};
+            fgetl(fid);
+            doloop = 0;
+        else
+            hvals = textscan(temp,'%s %s');
+            if ~isempty(str2num(char(hvals{2}))) && ~contains(hvals{1},'sub','IgnoreCase',true)
+                hvals = textscan(temp,'%s %d');
+                tmp = strrep(char(hvals{1}),':','');
+                eval(sprintf('header.%s = %d;',tmp,hvals{2}));
+            else
+                tmp = strrep(char(hvals{1}),':','');
+                tmp1 = strrep(char(hvals{2}),'.txt','');
+                eval(sprintf('header.%s = ''%s'';',tmp,char(tmp1)));
+            end
+            
+        end
+    end
+    
+    % %unknown columns, use this code for complete flexiblity
+    readstr = '';
+    for a = 1:length(header.cols)
+        switch(char(header.cols{a}))
+            case {'Device_Num','FakeTime','Time'}
+                readstr = [readstr '%d '];
+            case {'HandX','HandY','HandZ','HandAzim','HandElev','HandRoll','Theta'}
+                readstr = [readstr '%f '];
+            case {'StartX','StartY','TargetX','TargetY'}
+                readstr = [readstr '%f '];
+            case {'Trial', 'Redo','Stimulus'}
+                readstr = [readstr '%d '];
+            case {'Keymap' 'Stim'}
+                readstr = [readstr '%s '];
+            otherwise
+                readstr = [readstr '%f '];
+        end
+    end
+    
+    dvals = textscan(fid,readstr,inf);
+    
+    %compute number of birds
+    numBirds = length(unique(dvals{1}));
+    
+    for a = 1:numBirds
+        
+        %divide data structure into appropriate fields, based on column names
+        for b = 1:length(header.cols)
+            
+            if contains(header.cols{b},'hand','IgnoreCase',true) || contains(header.cols{b},'velocity','IgnoreCase',true) || contains(header.cols{b},'latency','IgnoreCase',true) || contains(header.cols{b},'duration','IgnoreCase',true)
+                fieldname = lower(header.cols{b});
+                fieldname = strrep(fieldname,'hand','');
+                fieldname = strrep(fieldname,'rotmat','rotang');
+                eval(sprintf('data.m(%d).%s = dvals{%d}(%d:%d:end);',a,fieldname,b,a,numBirds));
+            elseif strcmpi(header.cols{b},'trial') || strcmpi(header.cols{b},'redo') || strcmpi(header.cols{b},'session') || strcmpi(header.cols{b},'sub') || strcmpi(header.cols{b},'device_num')
+                eval(sprintf('data.%s = unique(dvals{%d}(%d:%d:end));',char(header.cols{b}),b,a,numBirds));
+            else
+                eval(sprintf('data.%s = dvals{%d}(%d:%d:end);',char(header.cols{b}),b,a,numBirds));
+            end
+            
+            
+            %tmp1 = strfind(cols{a},'m');
+            %tmp2 = strfind(cols{a},'_');
+            %eval(sprintf('data.m(%s).%s = dvals{%d};',char(cols{a}(tmp1+1:tmp2-1)),char(cols{a}(tmp2+1:end)),a));
+            
+        end
+            
+    end %end for loop
+    
+    if ~exist('data','var') || isempty(data) || isempty(data.m) || length(data.m) < 8 || length(data.m(1).x) <= header.Sampling_Rate
+        data = [];
+        
+        if nargout > 2
+            varargout{1} = fname;
+        end
+        if nargout > 3
+            varargout{2} = fpath;
+        end
+        if nargout > 4
+            varargout{3} = [];
+        end
+
+        return;
+        
+    end
+
+    if isfield(header,'Sampling_Rate') && isfield(data.m(1),'x')
+        data.time = [0:1:length(data.m(1).x)-1]'/header.Sampling_Rate;  %create time stamp in msec
+    elseif isfield(data.m(1),'x')
+        data.time = [0:1:length(data.m(1).x)-1]';
+    else  %unrecognized trial table type
+        data.time = [];
+    end
+
+    data.sub = header.SubjectID;
+    
+    fclose(fid);
+    
+    
+else
+    
+    filetype = 'steve';
+    
+    %didtime = 0;
+    
+    readstr = '';
+    for a = 1:length(cols)
+        
+        %     if didtime == 1 && strcmp(lower(char(cols{a})),'time') == 1
+        %         continue;
+        %     end
+        
+        switch(lower(char(cols{a})))
+            case {'sub','session','block_type','trial','sample'}
+                readstr = [readstr '%d '];
+            otherwise
+                readstr = [readstr '%f '];
+        end
+    end
+
+    dvals = textscan(fid,readstr,inf);
+    
+    fclose(fid);
+    
+    %dvals quits as soon as it runs into an error. That means that if there are
+    %an unequal number of columns, the last line is problably where the error
+    %arose. So we will trim the remaining columns to match as a quick
+    %workaround rather than having to diagnose the problem in the data file.
+    minlength = inf;
+    for a = 1:size(dvals,2)
+        if length(dvals{a}) < minlength
+            minlength = length(dvals{a});
+        end
+    end
+    for a = 1:size(dvals,2)
+        dvals{a} = dvals{a}(1:minlength);
+    end
+    
+    
+    didtime = 0;
+    
+    for a = 1:length(cols)
+        if didtime == 1 && strcmp(cols{a},'time') == 1
+            continue;
+        elseif didtime == 1 && strcmp(cols{a},'time') == 1
+            didtime = 1;
+        end
+        
+        if contains(cols{a},'m') && (contains(cols{a},'_x') || contains(cols{a},'_y') || contains(cols{a},'_z') || contains(cols{a},'_qual') || contains(cols{a},'_azim') || contains(cols{a},'_elev') || contains(cols{a},'_roll') || contains(cols{a},'_rotang'))
+            tmp1 = strfind(cols{a},'m');
+            tmp2 = strfind(cols{a},'_');
+            eval(sprintf('data.m(%s).%s = dvals{%d};',char(cols{a}(tmp1+1:tmp2-1)),char(cols{a}(tmp2+1:end)),a));
+        elseif strcmp(cols{a},'sub') || strcmp(cols{a},'session') || strcmp(cols{a},'block_type') || strcmp(cols{a},'trial')
+            eval(sprintf('data.%s = unique(dvals{%d});',char(cols{a}),a));
+        else
+            eval(sprintf('data.%s = dvals{%d};',char(cols{a}),a));
+        end
+    end
+    
+    if ~exist('data','var') || isempty(data) || isempty(data.m) || length(data.m) < 8 || length(data.m(1).x) <= 140
+        data = [];
+        
+        if nargout > 2
+            varargout{1} = fname;
+        end
+        if nargout > 3
+            varargout{2} = fpath;
+        end
+        if nargout > 4
+            varargout{3} = [];
+        end
+
+        return;
+        
+    end
+    
 end
 
 
@@ -133,15 +276,15 @@ for a = 1:8
         pitch = data.m(a).elev;
         roll = data.m(a).roll;
         
-        data.m(a).rotang(1,1,:) = cos(yaw).*cos(pitch);
-        data.m(a).rotang(1,2,:) = cos(yaw).*sin(pitch).*sin(roll)-sin(yaw).*cos(roll);
-        data.m(a).rotang(1,3,:) = cos(yaw).*sin(pitch).*cos(roll)+sin(yaw).*sin(roll);
-        data.m(a).rotang(2,1,:) = sin(yaw).*cos(pitch);
-        data.m(a).rotang(2,2,:) = sin(yaw).*sin(pitch).*sin(roll)+cos(yaw).*cos(roll);
-        data.m(a).rotang(2,3,:) = sin(yaw).*sin(pitch).*cos(roll)-cos(yaw).*sin(roll);
-        data.m(a).rotang(3,1,:) = -sin(pitch);
-        data.m(a).rotang(3,2,:) = cos(pitch).*sin(roll);
-        data.m(a).rotang(3,3,:) = cos(pitch).*cos(roll);
+        data.m(a).rotang(1,1,:) = cosd(yaw).*cosd(pitch);
+        data.m(a).rotang(1,2,:) = cosd(yaw).*sind(pitch).*sind(roll)-sind(yaw).*cosd(roll);
+        data.m(a).rotang(1,3,:) = cosd(yaw).*sind(pitch).*cosd(roll)+sind(yaw).*sind(roll);
+        data.m(a).rotang(2,1,:) = sind(yaw).*cosd(pitch);
+        data.m(a).rotang(2,2,:) = sind(yaw).*sind(pitch).*sind(roll)+cosd(yaw).*cosd(roll);
+        data.m(a).rotang(2,3,:) = sind(yaw).*sind(pitch).*cosd(roll)-cosd(yaw).*sind(roll);
+        data.m(a).rotang(3,1,:) = -sind(pitch);
+        data.m(a).rotang(3,2,:) = cosd(pitch).*sind(roll);
+        data.m(a).rotang(3,3,:) = cosd(pitch).*cosd(roll);
                             
     else
         %the rotation matrix is available!
@@ -195,13 +338,31 @@ for a = 1:length(data.m)
     
 end
 
-%we will assume data are in inches, so we need to convert units to cm
-for a = 1:length(data.m)
-    data.m(a).x = (data.m(a).x)*2.54;
-    data.m(a).y = (data.m(a).y)*2.54;
-    data.m(a).z = (data.m(a).z)*2.54;
+%we will assume data are in inches, so we need to convert units to cm. This
+% is true for the imitation data, but the gesture-to-sight data is already
+% collected in meters.
+if strcmpi(filetype,'aaron')
+    %aaron's code writes the imitation data in inches/1000 and the
+    %gesture-to-sight data in meters. so we have to convert only the
+    %imitation data to meters.
+    
+    if ~contains(fullfile(fpath,fname),'gesture','IgnoreCase',true) && ~contains(fullfile(fpath,fname),'gts','IgnoreCase',true) && ~contains(fullfile(fpath,fname),'VF')
+        for a = 1:length(data.m)
+            data.m(a).x = (data.m(a).x)*0.0254*1000;  %multiply by 1000 since we are accidentally dividing by 1000 in the data file.
+            data.m(a).y = (data.m(a).y)*0.0254*1000;
+            data.m(a).z = (data.m(a).z)*0.0254*1000;
+        end
+    end
+    
+elseif strcmpi(filetype,'steve')
+    %steve wrote out all his data in inches so we just convert to meters
+    
+    for a = 1:length(data.m)
+        data.m(a).x = (data.m(a).x)*0.0254; 
+        data.m(a).y = (data.m(a).y)*0.0254;
+        data.m(a).z = (data.m(a).z)*0.0254;
+    end
 end
-
 
 %there is a potential problem of data crossing out into the wrong
 %hemisphere. to avoid this, we will detect sudden discontinuities in two of
@@ -212,10 +373,34 @@ for a = 1:length(data.m)
     velx = diff(data.m(a).x);
     vely = diff(data.m(a).y);
     velz = diff(data.m(a).z);
+    
+    accx = diff(velx);
+    accy = diff(vely);
+    accz = diff(velz);
 
     indx = find(abs(velx(1:end)) > 10);
     indy = find(abs(vely(1:end)) > 10);
     indz = find(abs(velz(1:end)) > 10);
+
+    %find and throw out all the single-sample spikes
+    indax = find(abs(accx(1:end)) > 10);
+    inday = find(abs(accy(1:end)) > 10);
+    indaz = find(abs(accz(1:end)) > 10);
+    for b = 1:length(indax)-1
+        if indax(b+1)-indax(b) < 2
+            indx(indx == indax(b+1)) = [];
+        end
+    end
+    for b = 1:length(inday)-1
+        if inday(b+1)-inday(b) < 2
+            indy(indy == inday(b+1)) = [];
+        end
+    end
+    for b = 1:length(indaz)-1
+        if indaz(b+1)-indaz(b) < 2
+            indz(indz == indaz(b+1)) = [];
+        end
+    end
     
     if isempty(indx)
         %y and z
@@ -249,8 +434,8 @@ for a = 1:length(data.m)
 
     %fprintf('   Subj: %s\tTrial: %d',data.sub,
     fpn = [fpath fname];
-    tmpinds = strfind(fpn,'/');
-    fprintf('   %s\n',fpn(tmpinds(end):end));
+    tmpinds = strfind(fpn,filesep);
+    fprintf('   %s\n',fpn(tmpinds(end)+1:end));
     
 	figure(2)
     clf;
@@ -269,7 +454,7 @@ for a = 1:length(data.m)
         [xEW,yEW,zEW] = cylinder2P(.375,8,joint.elbow(1,:),joint.wrist(1,:));
         [xWF,yWF,zWF] = cylinder2P([.25 .25 .25 .1 .1 .1],8,joint.wrist(1,:),joint.indexfinger(1,:));
         [xWT,yWT,zWT] = cylinder2P([.25 .25 .25 .1 .1 .1],8,joint.wrist(1,:),joint.thumb(1,:));
-    elseif contains(lower(fpath),'8markervers')
+    else%if contains(lower(fpath),'8markervers')
         [xSE,ySE,zSE] = cylinder2P(.45,8,joint.shoulder(1,:),joint.elbow(1,:));
         [xEW,yEW,zEW] = cylinder2P(.375,8,joint.elbow(1,:),joint.wrist(1,:));
         [xWH,yWH,zWH] = cylinder2P(.375,8,joint.wrist(1,:),joint.hand(1,:));
@@ -369,16 +554,39 @@ for a = 1:length(data.m)
     indel = find(abs(velel(1:end)) > 100);
     indro = find(abs(velro(1:end)) > 100);
     
+    %if these are just single-sample spikes, we will ignore them...
+    accaz = diff(velaz);
+    accel = diff(velel);
+    accro = diff(velro);
+    indaaz = find(abs(accaz(1:end)) > 100);
+    indael = find(abs(accel(1:end)) > 100);
+    indaro = find(abs(accro(1:end)) > 100);
+    for b = 1:length(indaaz)-1
+        if indaaz(b+1)-indaaz(b) < 2
+            indaz(indaz == indaaz(b+1)) = [];
+        end
+    end
+    for b = 1:length(indael)-1
+        if indael(b+1)-indael(b) < 2
+            indel(indel == indael(b+1)) = [];
+        end
+    end
+    for b = 1:length(indaro)-1
+        if indaro(b+1)-indaro(b) < 2
+            indro(indro == indaro(b+1)) = [];
+        end
+    end
+    
     %comment these lines to avoid automatically fixing odd-numbers of marks
     %by assuming the last mark is missing -- but sometimes it is the first
     %mark that is missing!
-    if mod(length(indaz),2) ~= 0
+    if ~isempty(indaz) && mod(length(indaz),2) ~= 0
         indaz(end+1) = length(data.m(a).azim);
     end
-    if mod(length(indel),2) ~= 0
+    if ~isempty(indel) && mod(length(indel),2) ~= 0
         indel(end+1) = length(data.m(a).elev);
     end
-    if mod(length(indro),2) ~= 0
+    if ~isempty(indro) && mod(length(indro),2) ~= 0
         indro(end+1) = length(data.m(a).roll);
     end
 

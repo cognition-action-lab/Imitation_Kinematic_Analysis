@@ -107,6 +107,8 @@ nmarkers = [];
 handles.ctp = [];
 ma = [];
 subenable = 1;
+scale = 1;  %scale constants to accomodate units. we assume no scaling/inches.
+scaletype = 'inches';
 
 i = 2;
 while i <= length(varargin)
@@ -171,6 +173,14 @@ while i <= length(varargin)
         case 'full' %disable the subaction option
             subenable = 0;
             i = i+1;
+        case 'scaleinches'
+            scale = (1/0.0254);  %scale meters to inches
+            scaletype = 'inches';
+            i = i+1;
+        case 'scalemeters'
+            scale = (0.0254/1);  %scale inches to meters
+            scaletype = 'meters';
+            i = i+1;
         otherwise
             i = i+1;
     end
@@ -226,7 +236,7 @@ for a = length(m)+1:7
 end
 
 if length(m) < 8
-    m(8).x = m(7).x-30;
+    m(8).x = m(7).x-30*scale;
     m(8).y = m(7).y;
     m(8).z = m(7).z;
     m(8).azim = NaN*ones(size(m(8).x));
@@ -299,15 +309,32 @@ ymax = max([handles.joint.thumbfinger(:,2); handles.joint.indexfinger(:,2); hand
 zmin = min([handles.joint.thumbfinger(:,3); handles.joint.indexfinger(:,3); handles.joint.wrist(:,3); handles.joint.elbow(:,3); handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]);
 zmax = max([handles.joint.thumbfinger(:,3); handles.joint.indexfinger(:,3); handles.joint.wrist(:,3); handles.joint.elbow(:,3); handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]);
 
-handles.plot.xmin = floor(xmin/5)*5;
-handles.plot.xmax = ceil(xmax/5)*5;
-handles.plot.ymin = floor(ymin/5)*5;
-handles.plot.ymax = ceil(ymax/5)*5;
-handles.plot.zmin = floor(zmin/5)*5;
-handles.plot.zmax = ceil(zmax/5)*5;
-if( handles.plot.zmax < (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/4) )
-    handles.plot.zmax = (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/2*1.5);
-    %handles.plot.zmax = ceil(zmax/5)*5;
+if strcmpi(scaletype,'inches')
+    
+    handles.plot.xmin = floor(xmin/5)*5;
+    handles.plot.xmax = ceil(xmax/5)*5;
+    handles.plot.ymin = floor(ymin/5)*5;
+    handles.plot.ymax = ceil(ymax/5)*5;
+    handles.plot.zmin = floor(zmin/5)*5;
+    handles.plot.zmax = ceil(zmax/5)*5;
+    if( handles.plot.zmax < (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/4) )
+        handles.plot.zmax = (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/2*1.5);
+        %handles.plot.zmax = ceil(zmax/5)*5;
+    end
+else %scale meters
+    
+    
+    handles.plot.xmin = floor(xmin*100/5)*5/100;
+    handles.plot.xmax = ceil(xmax*100/5)*5/100;
+    handles.plot.ymin = floor(ymin*100/5)*5/100;
+    handles.plot.ymax = ceil(ymax*100/5)*5/100;
+    handles.plot.zmin = floor(zmin*100/5)*5/100;
+    handles.plot.zmax = ceil(zmax*100/5)*5/100;
+    if( handles.plot.zmax < (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/4) )
+        handles.plot.zmax = (max([handles.joint.shoulder(:,3); handles.joint.refshoulder(:,3)]) + abs(handles.joint.refshoulder(1,1)-handles.joint.shoulder(1,1))/2*1.5);
+        %handles.plot.zmax = ceil(zmax/5)*5;
+    end
+    
 end
 
 % handles.plot.xmin = -80;
@@ -349,7 +376,8 @@ setappdata(handles.figure1,'views',views);
 MarkType = 1;%Set to 1 for full action, set to 2 for best subaction
 setappdata(handles.figure1,'MarkType',MarkType);
 
-
+%maximize figure
+set(handles.figure1,'units','normalized','outerposition',[0 0 1 1])
 
 % Choose default command line output for markdataGUI
 handles.output = hObject;
@@ -1075,6 +1103,23 @@ c = round(coords(1));
 set(handles.slider1,'Value',c);
 
 setappdata(handles.figure1,'c',c);
+
+stype = get(handles.figure1,'SelectionType');
+if strcmpi(stype,'alt')  %right mouse click, delete the closest mark
+    
+    inds = getappdata(handles.figure1,'inds');
+    MarkType = getappdata(handles.figure1,'MarkType');
+    
+    if ~isempty(inds{MarkType})
+        diffinds = inds{MarkType}-c;
+        
+        [~,idiff] = min(abs(diffinds));
+        inds{MarkType}(idiff) = [];
+    end
+    
+    setappdata(handles.figure1,'inds',inds);
+
+end
 
 updateplot(handles)
 

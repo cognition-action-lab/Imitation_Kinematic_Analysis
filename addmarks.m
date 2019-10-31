@@ -4,8 +4,8 @@
 function ind = addmarks(vel,varargin)
 
 
-vthresh = 40;      %cm/s threshold
-vthreshMin = 10;    %cm/s threshold
+vthresh = 0.3;      %m/s threshold  %40*0.0254
+vthreshMin = 0.2;    %m/s threshold  %10*0.0254
 NchanAgree = 4;     %number of channels that have to meet the threshold
 tcombine = 8;      %duration within which sections will be combined
 throwfirst = 0;     %flag to throw out the first set of marks
@@ -56,7 +56,7 @@ vel3d = squeeze(sqrt(sum(vel.^2,2)));
 
 %agreement across at least N channels
 vless = vel3d > vthresh;
-vless = vless.*NchanWeight;
+%vless = vless.*NchanWeight;
 vless = sum(vless,2) >= NchanAgree;
 if ~any(vless)
     vless = vel3d > vthresh;

@@ -24,8 +24,17 @@ if isempty(paths)
     return;
 end
 
-for a = 1:length(paths)
-    ABblockcompile(paths{a});
+[savepath] = uigetdir('','Choose folder to save individual subject data into (cancel to save into the individual subject folder)');
+if isempty(savepath)
+    savepath = 0;
 end
 
-ABsubjectcompile(paths);
+% fprintf('\nSelect data file to append to (or cancel to create a new data file).\n');
+% [datafname,datafpath] = uigetfile('*.mat','Select data file to append to.');
+
+
+for a = 1:length(paths)
+    ABblockcompile(paths{a},savepath);
+end
+
+%ABsubjectcompile(paths,fullfile(datafpath,datafname));

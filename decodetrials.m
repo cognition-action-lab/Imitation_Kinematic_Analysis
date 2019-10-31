@@ -21,14 +21,15 @@ trialID = -1;
 item = '';
 subjID = -1;
 group = '';
+itemcode = [];
 
 %parse the inputs and determine the desired outputs. we could make this
 %more flexible using flags and a loop, but that makes it tricky to know
 %what the desired output should be. so we will parse the inputs explicitly.
-if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && (contains(varargin{1},'/') || contains(varargin{1},'\'))
+if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && contains(varargin{1},filesep)
     %we have fpath and fname as input
-    fpath = lower(varargin{1});
-    fname = lower(varargin{2});
+    fpath = varargin{1};
+    fname = varargin{2};
     
     %parse the file name
     isep = strfind(fname,'_');   %find all the separator indicies
@@ -37,29 +38,56 @@ if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && (contains(vara
     isep = sort(isep);
     
     %find the subject ID number
-    isubjID = strfind(fname,'sub');
+    isubjID = strfind(lower(fname),'sub');
     if ~isempty(isubjID)
         isepsubjID = isep(find(isep-isubjID>0,1,'first'));
         subjID = fname(isubjID+3:isepsubjID-1);
     else
-        subjID = '0';
+        isubjID = strfind(fpath,'AB');
+        if isempty(isubjID)
+            isubjID = strfind(fpath,'CS');
+        end
+        
+        if isempty(isubjID)
+            subjID = '0';
+        else
+            islash = strfind(fpath,filesep);
+            isepsubjID = islash(find(islash-isubjID>0,1,'first'));
+            if isempty(isepsubjID)
+                %subjID = [fpath(isubjID:isubjID+1) num2str(str2double(fpath(isubjID+2:end)))];
+                subjID = fpath(isubjID:end);
+            else
+                %subjID = [fpath(isubjID:isubjID+1) num2str(str2double(fpath(isubjID+2:isepsubjID-1)))];
+                subjID = fpath(isubjID:isepsubjID-1);
+            end
+        end
     end
+    
+    
     
     %find the trial number
     itrial = strfind(fname,'trial');
+    irepsep = strfind(fname,'-');
     if ~isempty(itrial)
         iseptrial = isep(find(isep-itrial>0,1,'first'));
         trialID = str2double(fname(itrial+5:iseptrial-1));
     else
-        item = lower(fname(isep(end-1)+1:isep(end)-1));
+        itrial = strfind(lower(fname),'item');
+        
+        if ~isempty(itrial)
+            iseptrial = irepsep(find(irepsep-itrial>0,1,'first'));
+            trialID = str2double(fname(itrial+4:iseptrial-1));
+        else
+            item = lower(fname(isep(end-1)+1:isep(end)-1));
+        end
     end
     
     %find the group
-    if contains(fpath,'control')
+    if contains(fpath,'control','IgnoreCase',true) || contains(fpath,'CB')
         group = 'Control';
-    elseif contains(fpath,'patient')
+    elseif contains(fpath,'patient','IgnoreCase',true) || contains(fpath,'AB')
         group = 'Patient';
-    elseif contains(fpath,'model')
+    elseif contains(fpath,'model','IgnoreCase',true)
         group = 'Model';
     end
     
@@ -108,55 +136,73 @@ elseif nargin == 1 && ischar(varargin{1})
     
 end
     
+fpath = lower(fpath);
+fname = lower(fname);
+
+fullpath = fullfile(fpath,fname);
 
 %condition on the available information to know what block we are in
-if (contains(fpath,'meaningful') && contains(fpath,'unnamed')) || (contains(fname,'meaningful') && contains(fname,'unnamed')) || blockID == 4 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'unnamed','IgnoreCase',true))
+if (contains(fullpath,'mful') && contains(fullpath,'unnamed')) || blockID == 2 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'unnamed','IgnoreCase',true))
     %meaningful unnamed
-    blockID = 4;
+    blockID = 2;
     blockname = 'Mful-Unnamed';
    
-elseif (contains(fpath,'meaningful') && contains(fpath,'named')) || (contains(fname,'meaningful') && contains(fname,'named')) || (contains(fname,'meaningful') && ~contains(fname,'unnamed') && ~contains(fname,'awk') && ~contains(fname,'static')) || blockID == 7 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'named','IgnoreCase',true)) || (contains(blockname,'ful','IgnoreCase',true) && ~contains(blockname,'awk','IgnoreCase',true) && ~contains(blockname,'static','IgnoreCase',true))
+elseif (contains(fullpath,'mful') && contains(fullpath,'named')) || (contains(fullpath,'mful') && ~contains(fullpath,'unnamed') && ~contains(fullpath,'awk') && ~contains(fullpath,'static')) || blockID == 5 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'named','IgnoreCase',true) && ~contains(blockname,'unnamed','IgnoreCase',true))
     %meaningful named (this is the default meaningful condition if it isn't labeled as something else)
-    blockID = 7;
+    blockID = 5;
     blockname = 'Mful-Named';
 
-elseif (contains(fpath,'meaningful') && contains(fpath,'awkward')) || (contains(fname,'meaningful') && contains(fname,'awkward')) || blockID == 5 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'awk','IgnoreCase',true))
+elseif (contains(fullpath,'mful') && contains(fullpath,'awk')) || blockID == 9 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'awk','IgnoreCase',true))
     %meaningful awkward
-    blockID = 5;
+    blockID = 9;
     blockname = 'Mful-Awk';
     
-elseif (contains(fpath,'meaningful') && contains(fpath,'static')) || (contains(fname,'meaningful') && contains(fname,'static')) || blockID == 6 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'static','IgnoreCase',true))
+elseif (contains(fullpath,'mful') && contains(fullpath,'static')) || blockID == 11 || (contains(blockname,'ful','IgnoreCase',true) && contains(blockname,'static','IgnoreCase',true))
     %meaningful static
-    blockID = 6;
+    blockID = 11;
     blockname = 'Mful-Static';
     
-elseif (contains(fpath,'meaningless') && ~contains(fpath,'awk') && ~contains(fpath,'static')) || (contains(fname,'meaningless')  && ~contains(fname,'awk') && ~contains(fname,'static')) || blockID == 1 || (contains(blockname,'less','IgnoreCase',true) &&  ~contains(blockname,'awk','IgnoreCase',true) && ~contains(blockname,'static','IgnoreCase',true))
+elseif (contains(fullpath,'mless') && ~contains(fullpath,'awk') && ~contains(fullpath,'static')) || blockID == 3 || (contains(blockname,'less','IgnoreCase',true) &&  ~contains(blockname,'awk','IgnoreCase',true) && ~contains(blockname,'static','IgnoreCase',true))
     %meaningless unnamed  (this is the default meaningful condition if it isn't labeled as something else)
-    blockID = 1;
+    blockID = 3;
     blockname = 'Mless';
     
-elseif (contains(fpath,'meaningless') && contains(fpath,'awkward')) || (contains(fname,'meaningless') && contains(fname,'awkward')) || blockID == 2 || (contains(blockname,'less','IgnoreCase',true) && contains(blockname,'awk','IgnoreCase',true))
+elseif (contains(fullpath,'mless') && contains(fullpath,'awk')) || blockID == 7 || (contains(blockname,'less','IgnoreCase',true) && contains(blockname,'awk','IgnoreCase',true))
     %meaningless awkward
-    blockID = 2;
+    blockID = 7;
     blockname = 'Mless-Awk';
     
-elseif (contains(fpath,'meaningless') && contains(fpath,'static')) || (contains(fname,'meaningless') && contains(fname,'static')) || blockID == 3 || (contains(blockname,'less','IgnoreCase',true) && contains(blockname,'static','IgnoreCase',true))
+elseif (contains(fullpath,'mless') && contains(fullpath,'static')) || blockID == 10 || (contains(blockname,'less','IgnoreCase',true) && contains(blockname,'static','IgnoreCase',true))
     %meaningless static
-    blockID = 3;
+    blockID = 10;
     blockname = 'Mless-Static';
     
-elseif (contains(fpath,'real') && contains(fpath,'object')) || (contains(fname,'real') && contains(fname,'object')) || blockID == 8 || (contains(blockname,'real','IgnoreCase',true) && contains(blockname,'object','IgnoreCase',true))
+elseif contains(fullpath,'rou') || blockID == 13 || (contains(blockname,'real','IgnoreCase',true) && contains(blockname,'object','IgnoreCase',true))
     %real object use
-    blockID = 8;
+    blockID = 13;
     blockname = 'Real-Object';
     
-elseif contains(fpath,'point') || contains(fname,'point') || blockID == 9  || contains(blockname,'point','IgnoreCase',true)
-    %point to point
-    blockID = 9;
-    blockname = 'Point-to-Point';
-    trialID = 0;
-    item = 'ptp';
+    if isempty(trialID) || isnan(trialID)
+        trialID = NaN;
+    end
     
+elseif contains(fullpath,'point') || blockID == 12  || contains(blockname,'point','IgnoreCase',true)
+    %point to point
+    blockID = 12;
+    blockname = 'Point-to-Point';
+    if isempty(trialID) || isnan(trialID)
+        trialID = NaN;
+    end
+    item = 'ptp';
+
+elseif contains(fpath,'sight','IgnoreCase',true) || (contains(fname,'tbl') && contains(fname,'VF')) || blockID == 14 || contains(blockname,'gesture-to-Sight','IgnoreCase',true)
+    blockID = 14;
+    blockname = 'Gesture-to-Sight';
+    if contains(fname,'NVF','IgnoreCase',true)
+        itemcode = 2;
+    else
+        itemcode = 1;
+    end
 end
 
 %fill in the missing trial information
@@ -164,7 +210,7 @@ if trialID > 0
     %blockID
     %trialID
     item = trialcode(blockID,trialID);
-else
+elseif ~isnan(trialID)
     %blockID
     %item
     trialID = trialcode(blockID,item);
@@ -179,9 +225,10 @@ switch(outputtype)
         varargout{1} = blockID;
         varargout{2} = trialID;
         varargout{3} = item;
-        varargout{4} = blockname;
-        varargout{5} = subjID;
-        varargout{6} = group;
+        varargout{4} = itemcode;
+        varargout{5} = blockname;
+        varargout{6} = subjID;
+        varargout{7} = group;
     
     case 2
         %we have blockID and trialID as input, and want to know the trial name and blockname
@@ -232,10 +279,10 @@ end
 
 function varargout = trialcode(blockid,input)
 
-trials = cell(9,1);
+trials = cell(14,1);
 
 %meaningless
-trials{1} = {1, 'watch';
+trials{3} = {1, 'watch';
              2, 'toothbrush';
              3, 'screwdriver';
              4, 'scissors';
@@ -252,7 +299,7 @@ trials{1} = {1, 'watch';
             };
 
 %meaningful (named/unnamed)
-trials{4} = {1, 'comb';
+trials{2} = {1, 'comb';
              2, 'eraser';
              3, 'fork';
              4, 'lighter';
@@ -267,20 +314,20 @@ trials{4} = {1, 'comb';
              13, 'stapler';
              14, 'lipstick'
             };
-trials{7} = trials{4};
+trials{5} = trials{2};
 
 %awkward (meaningful and meaningless are coded the same)
-trials{2} = {1, 'comb';
+trials{7} = {1, 'comb';
              2, 'eraser';
              3, 'scissors';
              4, 'toothbrush';
              5, 'lipstick';
              6, 'stapler';
             };
-trials{5} = trials{2};
+trials{9} = trials{7};
 
 %static (meaningful and meaningless are coded the same)
-trials{3} = {1, 'book';
+trials{10} = {1, 'book';
              2, 'camcorder';
              3, 'compactmirror';
              4, 'cupwstraw';
@@ -291,10 +338,15 @@ trials{3} = {1, 'book';
              9, 'umbrella';
              10, 'whistle';
             };
-trials{6} = trials{3};
+trials{11} = trials{10};
+
+%point-to-point
+trials{12} = {1, 'horizontal';
+              2, 'vertical'
+             };
 
 %real object use
-trials{8} = {1, 'scissors';
+trials{13} = {1, 'scissors';
              2, 'watch';
              3, 'toothbrush';
              4, 'comb';
@@ -306,14 +358,69 @@ trials{8} = {1, 'scissors';
              10, 'nailclippers';
             };
 
+%gesture-to-sight
+trials{14} = {1, 'beermug'
+              2, 'pingpongpaddle'
+              3, 'teapot'
+              4, 'teabag'
+              5, 'comb'
+              6, 'eraser'
+              7, 'paintroller'
+              8, 'knife'
+              9, 'axe'
+              10, 'bottleopener'
+              11, 'hammer'
+              12, 'iron'
+              13, 'saw'
+              14, 'drill'
+              15, 'razor'
+              16, 'fork'
+              17, 'woodenspoon'
+              18, 'cigarette'
+              19, 'deoderant'
+              20, 'match'
+              21, 'toothbrush'
+              22, 'tambourine'
+              23, 'wrench'
+              24, 'tweezers'
+              25, 'screwdriver'
+              26, 'nailclippers'
+              27, 'perfume'
+              28, 'camera'
+              29, 'remote'
+              30, 'stapler'
+              31, 'key'
+              32, 'lipstick'
+              33, 'scissors'
+              34, 'corkscrew'
+              35, 'lighter'
+              36, 'syringe'
+              37, 'soapdispenser'
+              38, 'calculator'
+              39, 'drum'
+              40, 'keyboard'
+              41, 'watch'
+             };
 
         
-if blockid == 9
-    %if we are fed point-to-point, there's no "trial" information so we
-    %handle this exception
+% if blockid == 12
+%     %if we are fed point-to-point, there's no "trial" information so we
+%     %handle this exception
+%     if isnumeric(input)
+%         %input the trial number, output the trial name
+%         varargout{1} = 'ptp';
+%         
+%     elseif ischar(input)
+%         %input the trial name, output the trial number. Since this could be
+%         %anything we just return a null value.
+%         varargout{1} = NaN;
+%     end
+%else
+if isempty(trials(blockid))
+    %if this is a practice block we will have no information to return
     if isnumeric(input)
         %input the trial number, output the trial name
-        varargout{1} = 'ptp';
+        varargout{1} = '';
         
     elseif ischar(input)
         %input the trial name, output the trial number. Since this could be
@@ -324,6 +431,7 @@ if blockid == 9
 else
     %for all other trial types, figure out what the input was and return
     %the correct output
+    
     
     if isnumeric(input)
         %input the trial number, output the trial name

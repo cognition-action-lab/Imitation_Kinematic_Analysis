@@ -108,7 +108,7 @@ scaletype = 'scalemeters';
             inds{2} = [];
             
             if isempty(inds{1}) || ClearMarks == 1
-                inds = addmarks(BlockData.vel{c,d},'Nchan',3,'throwmid');
+                inds = addmarks(BlockData.vel{c,d},'Nchan',3,'throwmid','vthresh',0.3,'vthreshMin',0.2);
             end
             
             if isempty(inds{1})

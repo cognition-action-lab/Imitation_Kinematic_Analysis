@@ -11,6 +11,19 @@ paths = {
             %'Data/Named Meaningful/Controls/116/'
             %'Data/Named Meaningful/Controls/344/'
             %'Data/Named Meaningful/Controls/345/'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB001/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB002/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB003/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB004/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB005/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB006/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB007/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB009/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB012/01_rawData'
+            '/Users/mrri/Desktop/OneDrive_1_11-1-2019/CB014/01_rawData'
+
+            
+            
            };
 
        
@@ -24,6 +37,7 @@ if isempty(paths)
     return;
 end
 
+fprintf('\n\nChoose folder to save data into (hit cancel to save into individual subject folders).\n\n');
 [savepath] = uigetdir('','Choose folder to save individual subject data into (cancel to save into the individual subject folder)');
 if isempty(savepath)
     savepath = 0;

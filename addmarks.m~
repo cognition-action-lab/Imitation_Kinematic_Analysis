@@ -135,7 +135,7 @@ for a = 1:2:length(veli)
         iminfirst = find(sum(vsection(imin:end,:) > vthreshMin,2)>=NchanAgree,1,'first');
         if isempty(iminfirst)
             [~,iminfirst] = min(vsection);
-            iminfirst = min(iminfirst);
+            
         end
         velimin(i,2) = veli(a)+ imin + iminfirst-1;
     else
@@ -147,7 +147,6 @@ for a = 1:2:length(veli)
         iminlast = find(sum(vsection(1:imin,:) > vthreshMin,2)>=NchanAgree,1,'last');
         if isempty(iminlast)
             [~,iminlast] = min(vsection);
-            iminlast = min(iminlast);
         end
         velimin(i,1) = veli(a)+iminlast-1;
     else

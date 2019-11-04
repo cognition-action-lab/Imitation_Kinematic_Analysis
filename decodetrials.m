@@ -45,7 +45,7 @@ if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && contains(varar
     else
         isubjID = strfind(fpath,'AB');
         if isempty(isubjID)
-            isubjID = strfind(fpath,'CS');
+            isubjID = strfind(fpath,'CB');
         end
         
         if isempty(isubjID)

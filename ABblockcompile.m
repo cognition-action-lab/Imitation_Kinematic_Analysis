@@ -7,6 +7,8 @@ function [pathname] = ABblockcompile(varargin)
 
 savepath = [];
 
+homepath = '~/Desktop/';
+
 if nargin > 0
     pathname = varargin{1};
     
@@ -24,7 +26,7 @@ else
     % clear exten guih;
     
     fprintf('\nSelect data folder to analyze.\n');
-    [pathname] = uigetdir('*.*','Select data folder to analyze');
+    [pathname] = uigetdir([homepath '*.*'],'Select data folder to analyze');
 end
 
 %%
@@ -427,7 +429,8 @@ clear a b c d curdir i1 i2 ind tmp* varargin
 %     fprintf('\n\nFile saved: %s\n\n',['S' tmpfname '_abdata' num2str(fappend) '.mat']);
 % else
     if isempty(savepath)
-        [savepath] = uigetdir(pathname,'Choose directory to save data into');
+        fprintf('\n\nChoose folder to save data into.\n\n');
+        [savepath] = uigetdir(fileparts(pathname),'Choose directory to save data into'); %default is the parent folder
         if isempty(savepath)
             savepath = pathname;
         end

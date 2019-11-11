@@ -113,15 +113,15 @@ for a = 1:8
         pitch = data.m(a).elev;
         roll = data.m(a).roll;
         
-        data.m(a).rotang(1,1,:) = cos(yaw).*cos(pitch);
-        data.m(a).rotang(1,2,:) = cos(yaw).*sin(pitch).*sin(roll)-sin(yaw).*cos(roll);
-        data.m(a).rotang(1,3,:) = cos(yaw).*sin(pitch).*cos(roll)+sin(yaw).*sin(roll);
-        data.m(a).rotang(2,1,:) = sin(yaw).*cos(pitch);
-        data.m(a).rotang(2,2,:) = sin(yaw).*sin(pitch).*sin(roll)+cos(yaw).*cos(roll);
-        data.m(a).rotang(2,3,:) = sin(yaw).*sin(pitch).*cos(roll)-cos(yaw).*sin(roll);
-        data.m(a).rotang(3,1,:) = -sin(pitch);
-        data.m(a).rotang(3,2,:) = cos(pitch).*sin(roll);
-        data.m(a).rotang(3,3,:) = cos(pitch).*cos(roll);
+        data.m(a).rotang(1,1,:) = cosd(yaw).*cosd(pitch);
+        data.m(a).rotang(1,2,:) = cosd(yaw).*sind(pitch).*sind(roll)-sind(yaw).*cosd(roll);
+        data.m(a).rotang(1,3,:) = cosd(yaw).*sind(pitch).*cosd(roll)+sind(yaw).*sind(roll);
+        data.m(a).rotang(2,1,:) = sind(yaw).*cosd(pitch);
+        data.m(a).rotang(2,2,:) = sind(yaw).*sind(pitch).*sind(roll)+cosd(yaw).*cosd(roll);
+        data.m(a).rotang(2,3,:) = sind(yaw).*sind(pitch).*cosd(roll)-cosd(yaw).*sind(roll);
+        data.m(a).rotang(3,1,:) = -sind(pitch);
+        data.m(a).rotang(3,2,:) = cosd(pitch).*sind(roll);
+        data.m(a).rotang(3,3,:) = cosd(pitch).*cosd(roll);
                             
     else
         %the rotation matrix is available!
@@ -180,11 +180,11 @@ for a = 1:length(data.m)
     
 end
 
-%we will assume data are in inches, so we need to convert units to cm
+%we will assume data are in inches, so we need to convert units to m
 for a = 1:length(data.m)
-    data.m(a).x = (data.m(a).x)*2.54;
-    data.m(a).y = (data.m(a).y)*2.54;
-    data.m(a).z = (data.m(a).z)*2.54;
+    data.m(a).x = (data.m(a).x)*0.0254;
+    data.m(a).y = (data.m(a).y)*0.0254;
+    data.m(a).z = (data.m(a).z)*0.0254;
 end
 
 
@@ -197,10 +197,34 @@ for a = 1:length(data.m)
     velx = diff(data.m(a).x);
     vely = diff(data.m(a).y);
     velz = diff(data.m(a).z);
-
+    
+    accx = diff(velx);
+    accy = diff(vely);
+    accz = diff(velz);
+ 
     indx = find(abs(velx(1:end)) > 10);
     indy = find(abs(vely(1:end)) > 10);
     indz = find(abs(velz(1:end)) > 10);
+ 
+    %find and throw out all the single-sample spikes
+    indax = find(abs(accx(1:end)) > 10);
+    inday = find(abs(accy(1:end)) > 10);
+    indaz = find(abs(accz(1:end)) > 10);
+    for b = 1:length(indax)-1
+        if indax(b+1)-indax(b) < 2
+            indx(indx == indax(b+1)) = [];
+        end
+    end
+    for b = 1:length(inday)-1
+        if inday(b+1)-inday(b) < 2
+            indy(indy == inday(b+1)) = [];
+        end
+    end
+    for b = 1:length(indaz)-1
+        if indaz(b+1)-indaz(b) < 2
+            indz(indz == indaz(b+1)) = [];
+        end
+    end
     
     if isempty(indx)
         %y and z
@@ -234,8 +258,8 @@ for a = 1:length(data.m)
 
     %fprintf('   Subj: %s\tTrial: %d',data.sub,
     fpn = [fpath fname];
-    tmpinds = strfind(fpn,'/');
-    fprintf('   %s\n',fpn(tmpinds(end):end));
+    tmpinds = strfind(fpn,'filesep);
+    fprintf('   %s\n',fpn(tmpinds(end)+1:end));
     
 	figure(2)
     clf;
@@ -254,7 +278,7 @@ for a = 1:length(data.m)
         [xEW,yEW,zEW] = cylinder2P(.375,8,joint.elbow(1,:),joint.wrist(1,:));
         [xWF,yWF,zWF] = cylinder2P([.25 .25 .25 .1 .1 .1],8,joint.wrist(1,:),joint.indexfinger(1,:));
         [xWT,yWT,zWT] = cylinder2P([.25 .25 .25 .1 .1 .1],8,joint.wrist(1,:),joint.thumb(1,:));
-    elseif contains(lower(fpath),'8markervers')
+    else%if contains(lower(fpath),'8markervers')
         [xSE,ySE,zSE] = cylinder2P(.45,8,joint.shoulder(1,:),joint.elbow(1,:));
         [xEW,yEW,zEW] = cylinder2P(.375,8,joint.elbow(1,:),joint.wrist(1,:));
         [xWH,yWH,zWH] = cylinder2P(.375,8,joint.wrist(1,:),joint.hand(1,:));
@@ -349,21 +373,44 @@ for a = 1:length(data.m)
     velaz = diff(data.m(a).azim);
     velel = diff(data.m(a).elev);
     velro = diff(data.m(a).roll);
-
+ 
     indaz = find(abs(velaz(1:end)) > 100);
     indel = find(abs(velel(1:end)) > 100);
     indro = find(abs(velro(1:end)) > 100);
     
+    %if these are just single-sample spikes, we will ignore them...
+    accaz = diff(velaz);
+    accel = diff(velel);
+    accro = diff(velro);
+    indaaz = find(abs(accaz(1:end)) > 100);
+    indael = find(abs(accel(1:end)) > 100);
+    indaro = find(abs(accro(1:end)) > 100);
+    for b = 1:length(indaaz)-1
+        if indaaz(b+1)-indaaz(b) < 2
+            indaz(indaz == indaaz(b+1)) = [];
+        end
+    end
+    for b = 1:length(indael)-1
+        if indael(b+1)-indael(b) < 2
+            indel(indel == indael(b+1)) = [];
+        end
+    end
+    for b = 1:length(indaro)-1
+        if indaro(b+1)-indaro(b) < 2
+            indro(indro == indaro(b+1)) = [];
+        end
+    end
+    
     %comment these lines to avoid automatically fixing odd-numbers of marks
     %by assuming the last mark is missing -- but sometimes it is the first
     %mark that is missing!
-    if mod(length(indaz),2) ~= 0
+    if ~isempty(indaz) && mod(length(indaz),2) ~= 0
         indaz(end+1) = length(data.m(a).azim);
     end
-    if mod(length(indel),2) ~= 0
+    if ~isempty(indel) && mod(length(indel),2) ~= 0
         indel(end+1) = length(data.m(a).elev);
     end
-    if mod(length(indro),2) ~= 0
+    if ~isempty(indro) && mod(length(indro),2) ~= 0
         indro(end+1) = length(data.m(a).roll);
     end
 

@@ -69,7 +69,7 @@ function varargout = markdataGUI(varargin)
 
 % Edit the above text to modify the response to help markdataGUI
 
-% Last Modified by GUIDE v2.5 23-Sep-2019 17:03:04
+% Last Modified by GUIDE v2.5 25-Nov-2019 17:42:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -285,7 +285,8 @@ end
 
 handles.m = m;
 handles.ma = ma;
-
+setappdata(handles.figure1,'m',m);
+setappdata(handles.figure1,'ma',ma);
 
 % for a = 1:size(m,3)
 %     m(a).y = -m(a).y;
@@ -375,6 +376,8 @@ else %scale meters
     end
     
 end
+setappdata(handles.figure1,'scaletype',scaletype);
+
 
 % handles.plot.xmin = -80;
 % handles.plot.xmax = 80;
@@ -575,7 +578,34 @@ setappdata(handles.figure1,'inds',inds);
 updateplot(handles);
 
 
+% --- Executes on button press in pushbutton8.
+function pushbutton8_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton8 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 
+m = getappdata(handles.figure1,'m');
+scaletype = getappdata(handles.figure1,'scaletype');
+
+
+%create velocity matrix, we will assume a sampling time of 140 Hz
+vel = [];
+dt = 1/140;
+for a = 1:6
+    vel(:,1,a) = gradient(sgolayfilt(m(a).x,2,min([19,2*floor((length(m(a).x)-2)/2)+1])),dt);
+    vel(:,2,a) = gradient(sgolayfilt(m(a).y,2,min([19,2*floor((length(m(a).y)-2)/2)+1])),dt);
+    vel(:,3,a) = gradient(sgolayfilt(m(a).z,2,min([19,2*floor((length(m(a).z)-2)/2)+1])),dt);
+end
+size(vel)
+if strcmpi(scaletype,'inches')
+    inds = addmarks(vel,'Nchan',3,'vthresh',8,'vthreshMin',2);
+else %meters
+    inds = addmarks(vel,'Nchan',3,'vthresh',0.2,'vthreshMin',0.5);
+end
+
+setappdata(handles.figure1,'inds',inds);
+
+updateplot(handles);
 
 
 % --- Executes on slider movement.
@@ -1265,3 +1295,4 @@ setappdata(handles.figure1,'c',c);
 set(handles.slider1,'Value',c);
     
 updateplot(handles);
+

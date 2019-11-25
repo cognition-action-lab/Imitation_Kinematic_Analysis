@@ -1,3 +1,4 @@
+
 %This function decodes block and trial information. You can provide any of
 %several inputs and obtain the remaining information as outputs.
 % Specifically, this function operates with:

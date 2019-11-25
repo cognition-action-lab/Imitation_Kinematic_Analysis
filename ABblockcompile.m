@@ -115,6 +115,22 @@ for a = 1:size(filename,1)
 
     if contains(filename(a).name,'multiple') || contains(filename(a).name,'sub41') || contains(filename(a).name,'sub116') || contains(filename(a).name,'sub345')  %we make the strong assumption that if the filename contains "multiple" it was an old recording with the upsidedown transmitter configuration
         trackerconfigtype = 2;
+    elseif contains(filename(a).name,'sub1_') || contains(fullfile(pathname,filename(a).name),'model','IgnoreCase',true)  %handle the model data
+        %note, the model data has a mix of both tracker types, so we need
+        %  to just set this manually (and may even need to process data
+        %  from individual trials within a block differently)! 
+        %for future reference, we will note what needed to be toggled here:
+        %
+        %MLESS: all trials but drinking use configtype = 2; drinking uses configtype = 1
+        %MLESS-AWK: 
+        %MLESS-STATIC: 
+        %
+        %MFUL: Named/Unnamed are the same videos so need to manually duplicate/label
+        %MFUL-AWK: 
+        %MFUL-STATIC: 
+        
+        trackerconfigtype = 2;
+        
     else %we assume that otherwise it was recorded using the wide-range transmitter setup
         trackerconfigtype = 1;
     end
@@ -280,8 +296,13 @@ for a = 1:size(Data,1)
                     sin(theta)  cos(theta) 0;
                     0           0          1];
                 
+                
+                
                 %rotate all the markers and the rotation matrix for this sample
                 for c = 1:length(Data(a,b,z).m)
+                    
+                    Data(a,b,z).m(c).rotangunrot = Data(a,b,z).m(c).rotang;
+                    
                     vec = [Data(a,b,z).m(c).x(d) Data(a,b,z).m(c).y(d) Data(a,b,z).m(c).z(d)];
                     rotvec = RotMat * vec';
                     Data(a,b,z).m(c).rotx(d,1) = rotvec(1);
@@ -289,16 +310,138 @@ for a = 1:size(Data,1)
                     Data(a,b,z).m(c).rotz(d,1) = rotvec(3);
                     
                     %rotate the rotation matrix
-                    Data(a,b,z).m(c).rotrotang(:,:,d) = Data(a,b,z).m(c).rotang(:,:,d)*RotMat;
+                    Data(a,b,z).m(c).rotang(:,:,d) = Data(a,b,z).m(c).rotang(:,:,d)*RotMat;
                     
                     %recalculate the Euler angles from the rotated rotation matrix
                     Data(a,b,z).m(c).azim(d) = atan2d(Data(a,b,z).m(c).rotang(2,1,d),Data(a,b,z).m(c).rotang(1,1,d));
                     Data(a,b,z).m(c).elev(d) = -asind(Data(a,b,z).m(c).rotang(3,1,d));
                     Data(a,b,z).m(c).roll(d) = atan2d(Data(a,b,z).m(c).rotang(3,2,d),Data(a,b,z).m(c).rotang(3,3,d));
                     
+                    %there is a potential problem where we hit 180 deg and
+                    %reset to -180. we can fix this problem by adding 360 to
+                    %the angle within these discontinuous regions.
+                    velaz = diff(Data(a,b,z).m(c).azim);
+                    velel = diff(Data(a,b,z).m(c).elev);
+                    velro = diff(Data(a,b,z).m(c).roll);
+                    
+                    indaz = find(abs(velaz(1:end)) > 100);
+                    indel = find(abs(velel(1:end)) > 100);
+                    indro = find(abs(velro(1:end)) > 100);
+                    
+                    %comment these lines to avoid automatically fixing odd-numbers of marks
+                    %by assuming the last mark is missing -- but sometimes it is the first
+                    %mark that is missing!
+                    if ~isempty(indaz) && mod(length(indaz),2) ~= 0
+                        indaz(end+1) = length(Data(a,b,z).m(c).azim);
+                    end
+                    if ~isempty(indel) && mod(length(indel),2) ~= 0
+                        indel(end+1) = length(Data(a,b,z).m(c).elev);
+                    end
+                    if ~isempty(indro) && mod(length(indro),2) ~= 0
+                        indro(end+1) = length(Data(a,b,z).m(c).roll);
+                    end
+                    
+                    
+                    if ~isempty(indaz)
+                        %         %comment these lines out to automatically process data without manual
+                        %         %verification
+                        %          figure(1)
+                        %          indaz = markdata3d(Data(a,b,z).m(c).azim,Data(a,b,z).m(c).elev,Data(a,b,z).m(c).roll,length(Data(a,b,z).m(c).x),indaz,0,1,'Name',sprintf('Marker %d azim',a));
+                        
+                        for g = 1:2:length(indaz)
+                            if sign(Data(a,b,z).m(c).azim(indaz(g))) == 1  %positive to negative discontinuity
+                                Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1)) = Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1))+360;
+                            else %negative to positive discontinuity
+                                Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1)) = Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1))-360;
+                            end
+                        end
+                        
+                    end
+                    if ~isempty(indel)
+                        %         %comment these lines out to automatically process data without manual
+                        %         %verification
+                        %          figure(1)
+                        %          indel = markdata3d(Data(a,b,z).m(c).elev,Data(a,b,z).m(c).azim,Data(a,b,z).m(c).roll,length(Data(a,b,z).m(c).x),indel,0,1,'Name',sprintf('Marker %d elev',a));
+                        for g = 1:2:length(indel)
+                            if sign(Data(a,b,z).m(c).elev(indel(g))) == 1  %positive to negative discontinuity
+                                Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1)) = Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1))+360;
+                            else %negative to positive discontinuity
+                                Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1)) = Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1))-360;
+                            end
+                        end
+                    end
+                    if ~isempty(indro)
+                        %         %comment these lines out to automatically process data without manual
+                        %         %verification
+                        %          figure(1)
+                        %          indro = markdata3d(Data(a,b,z).m(c).roll,Data(a,b,z).m(c).azim,Data(a,b,z).m(c).elev,length(Data(a,b,z).m(c).x),indro,0,1,'Name',sprintf('Marker %d roll',a));
+                        for g = 1:2:length(indro)
+                            if sign(Data(a,b,z).m(c).roll(indro(g))) == 1  %positive to negative discontinuity
+                                Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1)) = Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1))+360;
+                            else %negative to positive discontinuity
+                                Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1)) = Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1))-360;
+                            end
+                        end
+                    end
+                    
                 end
                 
             end
+            
+%             for c = 1:length(Data(a,b,z).m)
+%                 
+%                 %check if we got everything, if not, then manually verify
+%                 if any(abs(Data(a,b,z).m(c).azim)>360)
+%                     figure(1)
+%                     indaz = markdata3d(Data(a,b,z).m(c).azim,Data(a,b,z).m(c).elev,Data(a,b,z).m(c).roll,length(Data(a,b,z).m(c).x),[],0,1,'Name',sprintf('Marker %d azim',a));
+%                     
+%                     if mod(length(indaz),2) ~= 0
+%                         indaz(end+1) = length(Data(a,b,z).m(c).azim);
+%                     end
+%                     
+%                     for g = 1:2:length(indaz)
+%                         if sign(Data(a,b,z).m(c).azim(indaz(g))-Data(a,b,z).m(c).azim(indaz(g)+1)) == 1  %positive to negative discontinuity
+%                             Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1)) = Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1))+360;
+%                         else %negative to positive discontinuity
+%                             Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1)) = Data(a,b,z).m(c).azim(indaz(g)+1:indaz(g+1))-360;
+%                         end
+%                     end
+%                 end
+%                 if any(abs(Data(a,b,z).m(c).elev)>360)
+%                     figure(1)
+%                     indel = markdata3d(Data(a,b,z).m(c).elev,Data(a,b,z).m(c).azim,Data(a,b,z).m(c).roll,length(Data(a,b,z).m(c).x),[],0,1,'Name',sprintf('Marker %d elev',a));
+%                     
+%                     if mod(length(indel),2) ~= 0
+%                         indel(end+1) = length(Data(a,b,z).m(c).elev);
+%                     end
+%                     
+%                     for g = 1:2:length(indel)
+%                         if sign(Data(a,b,z).m(c).elev(indel(g))-Data(a,b,z).m(c).elev(indel(g)+1)) == 1  %positive to negative discontinuity
+%                             Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1)) = Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1))+360;
+%                         else %negative to positive discontinuity
+%                             Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1)) = Data(a,b,z).m(c).elev(indel(g)+1:indel(g+1))-360;
+%                         end
+%                     end
+%                 end
+%                 if any(abs(Data(a,b,z).m(c).roll)>360)
+%                     figure(1)
+%                     indro = markdata3d(Data(a,b,z).m(c).roll,Data(a,b,z).m(c).azim,Data(a,b,z).m(c).elev,length(Data(a,b,z).m(c).x),[],0,1,'Name',sprintf('Marker %d roll',a));
+%                     
+%                     if mod(length(indro),2) ~= 0
+%                         indro(end+1) = length(Data(a,b,z).m(c).roll);
+%                     end
+%                     
+%                     for g = 1:2:length(indro)
+%                         if sign(Data(a,b,z).m(c).roll(indro(g))-Data(a,b,z).m(c).roll(indro(g)+1)) == 1  %positive to negative discontinuity
+%                             Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1)) = Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1))+360;
+%                         else %negative to positive discontinuity
+%                             Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1)) = Data(a,b,z).m(c).roll(indro(g)+1:indro(g+1))-360;
+%                         end
+%                     end
+%                 end
+%             end
+%             
+            
         end
     end
 end

@@ -258,7 +258,7 @@ for a = 1:length(data.m)
 
     %fprintf('   Subj: %s\tTrial: %d',data.sub,
     fpn = [fpath fname];
-    tmpinds = strfind(fpn,'filesep);
+    tmpinds = strfind(fpn,filesep);
     fprintf('   %s\n',fpn(tmpinds(end)+1:end));
     
 	figure(2)
@@ -370,45 +370,81 @@ end
 %we don't have to worry about this for the rotation matrix (which we will
 %preferentially use going forward...)
 for a = 1:length(data.m)
+    
+    
+    %elevation is potentially discontinuous every 90 deg. 
+    indel = find(abs(data.m(a).elev) > 85);
+    if ~isempty(indel)
+%         %comment these lines out to automatically process data without manual
+%         %verification 
+        figure(1)
+        ylinemax = max(ceil(data.m(a).elev/90)*90);
+        ylinemin = min(floor(data.m(a).elev/90)*90);
+        indel = markdata3d(data.m(a).elev,data.m(a).azim,data.m(a).roll,length(data.m(a).x),[],0,1,'Name',sprintf('Marker %d elev',a),'plotyline',[ylinemin:90:ylinemax]);
+        if mod(length(indel),2) ~= 0
+            indel(end+1) = length(data.m(a).elev);
+        end
+        if indel(end) == length(data.m(a).elev)
+            indend = 1;
+        end
+        for b = 1:2:length(indel)
+            base1 = data.m(a).elev(indel(b));
+            base2 = data.m(a).elev(indel(b+1));
+            section = data.m(a).elev(indel(b)+1:indel(b+1));
+            
+            if b == length(indel)-1 && indend %if we are in the last section, just flip about the base
+                section = -(section-base)+base;
+                data.m(a).elev(indel(b)+1:indel(b+1)) = section;
+            else %if we are in the middle of the trajectory, ?
+                section = -(section-base)+base;
+                data.m(a).elev(indel(b)+1:indel(b+1)) = section;
+            end
+                
+            %if sign(data.m(a).elev(indel(b)-5) - data.m(a).elev(indel(b)-4)) == 1 %positive slope, flip up
+            %    
+            %else %negative slope, flip down
+            %    
+            %end
+            
+        end
+    end
+    
+    
+    %azimuth and roll are discontinuous at 360
     velaz = diff(data.m(a).azim);
-    velel = diff(data.m(a).elev);
     velro = diff(data.m(a).roll);
  
-    indaz = find(abs(velaz(1:end)) > 100);
-    indel = find(abs(velel(1:end)) > 100);
-    indro = find(abs(velro(1:end)) > 100);
+    indaz = find(abs(velaz(1:end)) > 80);
+    indro = find(abs(velro(1:end)) > 80);
     
-    %if these are just single-sample spikes, we will ignore them...
-    accaz = diff(velaz);
-    accel = diff(velel);
-    accro = diff(velro);
-    indaaz = find(abs(accaz(1:end)) > 100);
-    indael = find(abs(accel(1:end)) > 100);
-    indaro = find(abs(accro(1:end)) > 100);
-    for b = 1:length(indaaz)-1
-        if indaaz(b+1)-indaaz(b) < 2
-            indaz(indaz == indaaz(b+1)) = [];
-        end
-    end
-    for b = 1:length(indael)-1
-        if indael(b+1)-indael(b) < 2
-            indel(indel == indael(b+1)) = [];
-        end
-    end
-    for b = 1:length(indaro)-1
-        if indaro(b+1)-indaro(b) < 2
-            indro(indro == indaro(b+1)) = [];
-        end
-    end
+%     %if these are just single-sample spikes, we will ignore them...
+%     accaz = diff(velaz);
+%     accel = diff(velel);
+%     accro = diff(velro);
+%     indaaz = find(abs(accaz(1:end)) > 100);
+%     indael = find(abs(accel(1:end)) > 100);
+%     indaro = find(abs(accro(1:end)) > 100);
+%     for b = 1:length(indaaz)-1
+%         if indaaz(b+1)-indaaz(b) < 2
+%             indaz(indaz == indaaz(b+1)) = [];
+%         end
+%     end
+%     for b = 1:length(indael)-1
+%         if indael(b+1)-indael(b) < 2
+%             indel(indel == indael(b+1)) = [];
+%         end
+%     end
+%     for b = 1:length(indaro)-1
+%         if indaro(b+1)-indaro(b) < 2
+%             indro(indro == indaro(b+1)) = [];
+%         end
+%     end
     
     %comment these lines to avoid automatically fixing odd-numbers of marks
     %by assuming the last mark is missing -- but sometimes it is the first
     %mark that is missing!
     if ~isempty(indaz) && mod(length(indaz),2) ~= 0
         indaz(end+1) = length(data.m(a).azim);
-    end
-    if ~isempty(indel) && mod(length(indel),2) ~= 0
-        indel(end+1) = length(data.m(a).elev);
     end
     if ~isempty(indro) && mod(length(indro),2) ~= 0
         indro(end+1) = length(data.m(a).roll);
@@ -418,9 +454,11 @@ for a = 1:length(data.m)
     if ~isempty(indaz)
 %         %comment these lines out to automatically process data without manual
 %         %verification 
-%         figure(1)
-%         indaz = markdata3d(data.m(a).azim,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indaz,0,1,'Name',sprintf('Marker %d azim',a));
-
+          figure(1)
+          indaz = markdata3d(data.m(a).azim,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indaz,0,1,'Name',sprintf('Marker %d azim',a));
+        if mod(length(indaz),2) ~= 0
+            indaz(end+1) = length(data.m(a).azim);
+        end
         for b = 1:2:length(indaz)
             if sign(data.m(a).azim(indaz(b))) == 1  %positive to negative discontinuity
                 data.m(a).azim(indaz(b)+1:indaz(b+1)) = data.m(a).azim(indaz(b)+1:indaz(b+1))+360;
@@ -431,25 +469,14 @@ for a = 1:length(data.m)
         
     end
     
-    if ~isempty(indel)
-%         %comment these lines out to automatically process data without manual
-%         %verification 
-%         figure(1)
-%         indel = markdata3d(data.m(a).elev,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indel,0,1,'Name',sprintf('Marker %d elev',a));
-        for b = 1:2:length(indel)
-            if sign(data.m(a).elev(indel(b))) == 1  %positive to negative discontinuity
-                data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))+360;
-            else %negative to positive discontinuity
-                data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))-360;
-            end
-        end
-    end
-    
     if ~isempty(indro)
 %         %comment these lines out to automatically process data without manual
 %         %verification 
-%         figure(1)
-%         indro = markdata3d(data.m(a).roll,data.m(a).roll,data.m(a).roll,length(data.m(a).x),indro,0,1,'Name',sprintf('Marker %d roll',a));
+          figure(1)
+          indro = markdata3d(data.m(a).roll,data.m(a).azim,data.m(a).elev,length(data.m(a).x),indro,0,1,'Name',sprintf('Marker %d roll',a));
+        if mod(length(indro),2) ~= 0
+            indro(end+1) = length(data.m(a).roll);
+        end
         for b = 1:2:length(indro)
             if sign(data.m(a).roll(indro(b))) == 1  %positive to negative discontinuity
                 data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))+360;
@@ -457,6 +484,25 @@ for a = 1:length(data.m)
                 data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))-360;
             end
         end
+    end
+    
+
+    
+    %we have to recompute the rotation matrix!
+    if ~isempty(indaz) || ~isempty(indel) || ~isempty(indro)
+        yaw = data.m(a).azim;
+        pitch = data.m(a).elev;
+        roll = data.m(a).roll;
+        
+        data.m(a).rotang(1,1,:) = cosd(yaw).*cosd(pitch);
+        data.m(a).rotang(1,2,:) = cosd(yaw).*sind(pitch).*sind(roll)-sind(yaw).*cosd(roll);
+        data.m(a).rotang(1,3,:) = cosd(yaw).*sind(pitch).*cosd(roll)+sind(yaw).*sind(roll);
+        data.m(a).rotang(2,1,:) = sind(yaw).*cosd(pitch);
+        data.m(a).rotang(2,2,:) = sind(yaw).*sind(pitch).*sind(roll)+cosd(yaw).*cosd(roll);
+        data.m(a).rotang(2,3,:) = sind(yaw).*sind(pitch).*cosd(roll)-cosd(yaw).*sind(roll);
+        data.m(a).rotang(3,1,:) = -sind(pitch);
+        data.m(a).rotang(3,2,:) = cosd(pitch).*sind(roll);
+        data.m(a).rotang(3,3,:) = cosd(pitch).*cosd(roll);
     end
     
 end

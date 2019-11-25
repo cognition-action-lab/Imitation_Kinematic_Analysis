@@ -40,6 +40,7 @@ n1 = 1;
 indx = [];
 indz = [];
 resetylim = 0;
+yline = [];
 
 for a = 1:2:length(varargin)
     switch(lower(varargin{a}))
@@ -53,6 +54,8 @@ for a = 1:2:length(varargin)
         case 'indz'
             indz = varargin{a+1};
             markz = 1;
+        case 'plotyline'
+            yline = varargin{a+1};
     end
 end
 
@@ -94,6 +97,9 @@ while(but~='x')
         iii2=ii2(find(ii2>=n1 & ii2<=n2));
         plot((n1:n2),x(n1:n2),'-')
         hold on
+        for ilines = 1:length(yline)
+            plot([n1 n2],[yline(ilines) yline(ilines)],'k:');
+        end
         if markx == 1
             kk1=kk(1:2:length(kk));
             kk2=kk(2:2:length(kk));
@@ -115,12 +121,18 @@ while(but~='x')
         subplot(3,1,2)
         plot((n1:n2),y(n1:n2),'-')
         hold on
+        for ilines = 1:length(yline)
+            plot([n1 n2],[yline(ilines) yline(ilines)],'k:');
+        end
         if(~isempty(iii1)) plot(iii1,y(iii1),'xr'); end
         if(~isempty(iii2)) plot(iii2,y(iii2),'or'); end
 
         hold off;subplot(3,1,3)
         plot((n1:n2),z(n1:n2),'-')
         hold on
+        for ilines = 1:length(yline)
+            plot([n1 n2],[yline(ilines) yline(ilines)],'k:');
+        end
         if markz == 1
             mm1=mm(1:2:length(mm));
             mm2=mm(2:2:length(mm));
@@ -143,6 +155,9 @@ while(but~='x')
     % left button - add a point
     if(but==1)
         inew=fix(xx);
+        if inew < 1
+            inew = 1;
+        end
         if(inew>5 & inew<N-5)
             aa=y(inew)-y(inew-2);
             yseg=y(inew-3:inew+3);

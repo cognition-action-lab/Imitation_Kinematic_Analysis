@@ -122,7 +122,9 @@ if length(cols) <= 2
         
     end
 
-    if isfield(header,'Sampling_Rate') && isfield(data.m(1),'x')
+    if isfield(data,'TrackerTime')
+        data.time = data.TrackerTime;  %note, the reported sampling rate might be 1/3 the true sampling interval
+    elseif isfield(header,'Sampling_Rate') && isfield(data.m(1),'x')
         data.time = [0:1:length(data.m(1).x)-1]'/header.Sampling_Rate;  %create time stamp in msec
     elseif isfield(data.m(1),'x')
         data.time = [0:1:length(data.m(1).x)-1]';
@@ -214,47 +216,47 @@ else
     
 end
 
-
-%if this is an old data set, we want to re-align the marker numbers
-if contains(lower(fpath),'6markervers')
-    data.m(8) = data.m(6);  %right shoulder
-    data.m(7) = data.m(5);  %left shoulder
-    data.m(6) = data.m(4);  %elbow
-    data.m(5) = data.m(3);  %wrist
-    data.m(4).x = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).y = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).z = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).qual = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).azim = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).elev = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(4).roll = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
-    data.m(3).x = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).y = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).z = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).qual = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).azim = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).elev = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-    data.m(3).roll = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
-end
+% 
+% %if this is an old data set, we want to re-align the marker numbers
+% if contains(lower(fpath),'6markervers')
+%     data.m(8) = data.m(6);  %right shoulder
+%     data.m(7) = data.m(5);  %left shoulder
+%     data.m(6) = data.m(4);  %elbow
+%     data.m(5) = data.m(3);  %wrist
+%     data.m(4).x = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).y = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).z = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).qual = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).azim = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).elev = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(4).roll = NaN*ones(size(data.m(1).x));         %back of hand, not recorded
+%     data.m(3).x = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).y = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).z = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).qual = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).azim = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).elev = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+%     data.m(3).roll = NaN*ones(size(data.m(1).x));         %middle finger, not recorded
+% end
 
 
 %uncomment these lines to modify the sensor order...
-
-%For patient 2221, we need to swap sensors 7 and 8
-if contains(fpath,'2221') && contains(lower(fpath),'patient')
-    tmp = data.m(8);
-    data.m(8) = data.m(7);
-    data.m(7) = tmp;
-    clear tmp;
-end
-
-%for patient 2777, we have to swap sensor 4 and 8
-if contains(fpath,'2777') && contains(lower(fpath),'patient')
-    tmp = data.m(8);
-    data.m(8) = data.m(4);
-    data.m(4) = tmp;
-    clear tmp;
-end
+% 
+% %For patient 2221, we need to swap sensors 7 and 8
+% if contains(fpath,'2221') && contains(lower(fpath),'patient')
+%     tmp = data.m(8);
+%     data.m(8) = data.m(7);
+%     data.m(7) = tmp;
+%     clear tmp;
+% end
+% 
+% %for patient 2777, we have to swap sensor 4 and 8
+% if contains(fpath,'2777') && contains(lower(fpath),'patient')
+%     tmp = data.m(8);
+%     data.m(8) = data.m(4);
+%     data.m(4) = tmp;
+%     clear tmp;
+% end
 
 
 %get the rotation matrix and Euler angles
@@ -272,6 +274,13 @@ for a = 1:8
         %
         %compute the rotation matrix from the azim, elev, and roll (i.e.,
         %yaw/pitch/roll)
+        
+        %note that this method is bad because there is inherent uncertainty
+        %in the Euler angles that makes it unreliable, and it isn't clear
+        %how to address the problem. So we'll do the conversion but flag it
+        %so we know not to rely on it.
+        
+        data.userotmat = 0;
         yaw = data.m(a).azim;
         pitch = data.m(a).elev;
         roll = data.m(a).roll;
@@ -288,6 +297,7 @@ for a = 1:8
                             
     else
         %the rotation matrix is available!
+        data.userotmat = 1;
         data.m(a).rotang = [];
         data.m(a).rotang(1,1,:) = data.m(a).rotang11;
         data.m(a).rotang(1,2,:) = data.m(a).rotang12;
@@ -544,98 +554,99 @@ end
 %reset to -180. we can fix this problem in the same way, by adding 360 to
 %the angle within these discontinuous regions.
 %we don't have to worry about this for the rotation matrix (which we will
-%preferentially use going forward...)
-for a = 1:length(data.m)
-    velaz = diff(data.m(a).azim);
-    velel = diff(data.m(a).elev);
-    velro = diff(data.m(a).roll);
-
-    indaz = find(abs(velaz(1:end)) > 100);
-    indel = find(abs(velel(1:end)) > 100);
-    indro = find(abs(velro(1:end)) > 100);
-    
-    %if these are just single-sample spikes, we will ignore them...
-    accaz = diff(velaz);
-    accel = diff(velel);
-    accro = diff(velro);
-    indaaz = find(abs(accaz(1:end)) > 100);
-    indael = find(abs(accel(1:end)) > 100);
-    indaro = find(abs(accro(1:end)) > 100);
-    for b = 1:length(indaaz)-1
-        if indaaz(b+1)-indaaz(b) < 2
-            indaz(indaz == indaaz(b+1)) = [];
-        end
-    end
-    for b = 1:length(indael)-1
-        if indael(b+1)-indael(b) < 2
-            indel(indel == indael(b+1)) = [];
-        end
-    end
-    for b = 1:length(indaro)-1
-        if indaro(b+1)-indaro(b) < 2
-            indro(indro == indaro(b+1)) = [];
-        end
-    end
-    
-    %comment these lines to avoid automatically fixing odd-numbers of marks
-    %by assuming the last mark is missing -- but sometimes it is the first
-    %mark that is missing!
-    if ~isempty(indaz) && mod(length(indaz),2) ~= 0
-        indaz(end+1) = length(data.m(a).azim);
-    end
-    if ~isempty(indel) && mod(length(indel),2) ~= 0
-        indel(end+1) = length(data.m(a).elev);
-    end
-    if ~isempty(indro) && mod(length(indro),2) ~= 0
-        indro(end+1) = length(data.m(a).roll);
-    end
-
-    
-    if ~isempty(indaz)
-%         %comment these lines out to automatically process data without manual
-%         %verification 
-%         figure(1)
-%         indaz = markdata3d(data.m(a).azim,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indaz,0,1,'Name',sprintf('Marker %d azim',a));
-
-        for b = 1:2:length(indaz)
-            if sign(data.m(a).azim(indaz(b))) == 1  %positive to negative discontinuity
-                data.m(a).azim(indaz(b)+1:indaz(b+1)) = data.m(a).azim(indaz(b)+1:indaz(b+1))+360;
-            else %negative to positive discontinuity
-                data.m(a).azim(indaz(b)+1:indaz(b+1)) = data.m(a).azim(indaz(b)+1:indaz(b+1))-360;
-            end
-        end
-        
-    end
-    
-    if ~isempty(indel)
-%         %comment these lines out to automatically process data without manual
-%         %verification 
-%         figure(1)
-%         indel = markdata3d(data.m(a).elev,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indel,0,1,'Name',sprintf('Marker %d elev',a));
-        for b = 1:2:length(indel)
-            if sign(data.m(a).elev(indel(b))) == 1  %positive to negative discontinuity
-                data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))+360;
-            else %negative to positive discontinuity
-                data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))-360;
-            end
-        end
-    end
-    
-    if ~isempty(indro)
-%         %comment these lines out to automatically process data without manual
-%         %verification 
-%         figure(1)
-%         indro = markdata3d(data.m(a).roll,data.m(a).roll,data.m(a).roll,length(data.m(a).x),indro,0,1,'Name',sprintf('Marker %d roll',a));
-        for b = 1:2:length(indro)
-            if sign(data.m(a).roll(indro(b))) == 1  %positive to negative discontinuity
-                data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))+360;
-            else %negative to positive discontinuity
-                data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))-360;
-            end
-        end
-    end
-    
-end
+%preferentially use throughout.) since this is really just for visualization
+%purposes and we have more transformations to do, we will skip this step.
+% for a = 1:length(data.m)
+%     velaz = diff(data.m(a).azim);
+%     velel = diff(data.m(a).elev);
+%     velro = diff(data.m(a).roll);
+% 
+%     indaz = find(abs(velaz(1:end)) > 100);
+%     indel = find(abs(velel(1:end)) > 100);
+%     indro = find(abs(velro(1:end)) > 100);
+%     
+%     %if these are just single-sample spikes, we will ignore them...
+%     accaz = diff(velaz);
+%     accel = diff(velel);
+%     accro = diff(velro);
+%     indaaz = find(abs(accaz(1:end)) > 100);
+%     indael = find(abs(accel(1:end)) > 100);
+%     indaro = find(abs(accro(1:end)) > 100);
+%     for b = 1:length(indaaz)-1
+%         if indaaz(b+1)-indaaz(b) < 2
+%             indaz(indaz == indaaz(b+1)) = [];
+%         end
+%     end
+%     for b = 1:length(indael)-1
+%         if indael(b+1)-indael(b) < 2
+%             indel(indel == indael(b+1)) = [];
+%         end
+%     end
+%     for b = 1:length(indaro)-1
+%         if indaro(b+1)-indaro(b) < 2
+%             indro(indro == indaro(b+1)) = [];
+%         end
+%     end
+%     
+%     %comment these lines to avoid automatically fixing odd-numbers of marks
+%     %by assuming the last mark is missing -- but sometimes it is the first
+%     %mark that is missing!
+%     if ~isempty(indaz) && mod(length(indaz),2) ~= 0
+%         indaz(end+1) = length(data.m(a).azim);
+%     end
+%     if ~isempty(indel) && mod(length(indel),2) ~= 0
+%         indel(end+1) = length(data.m(a).elev);
+%     end
+%     if ~isempty(indro) && mod(length(indro),2) ~= 0
+%         indro(end+1) = length(data.m(a).roll);
+%     end
+% 
+%     
+%     if ~isempty(indaz)
+% %         %comment these lines out to automatically process data without manual
+% %         %verification 
+% %         figure(1)
+% %         indaz = markdata3d(data.m(a).azim,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indaz,0,1,'Name',sprintf('Marker %d azim',a));
+% 
+%         for b = 1:2:length(indaz)
+%             if sign(data.m(a).azim(indaz(b))) == 1  %positive to negative discontinuity
+%                 data.m(a).azim(indaz(b)+1:indaz(b+1)) = data.m(a).azim(indaz(b)+1:indaz(b+1))+360;
+%             else %negative to positive discontinuity
+%                 data.m(a).azim(indaz(b)+1:indaz(b+1)) = data.m(a).azim(indaz(b)+1:indaz(b+1))-360;
+%             end
+%         end
+%         
+%     end
+%     
+%     if ~isempty(indel)
+% %         %comment these lines out to automatically process data without manual
+% %         %verification 
+% %         figure(1)
+% %         indel = markdata3d(data.m(a).elev,data.m(a).elev,data.m(a).roll,length(data.m(a).x),indel,0,1,'Name',sprintf('Marker %d elev',a));
+%         for b = 1:2:length(indel)
+%             if sign(data.m(a).elev(indel(b))) == 1  %positive to negative discontinuity
+%                 data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))+360;
+%             else %negative to positive discontinuity
+%                 data.m(a).elev(indel(b)+1:indel(b+1)) = data.m(a).elev(indel(b)+1:indel(b+1))-360;
+%             end
+%         end
+%     end
+%     
+%     if ~isempty(indro)
+% %         %comment these lines out to automatically process data without manual
+% %         %verification 
+% %         figure(1)
+% %         indro = markdata3d(data.m(a).roll,data.m(a).roll,data.m(a).roll,length(data.m(a).x),indro,0,1,'Name',sprintf('Marker %d roll',a));
+%         for b = 1:2:length(indro)
+%             if sign(data.m(a).roll(indro(b))) == 1  %positive to negative discontinuity
+%                 data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))+360;
+%             else %negative to positive discontinuity
+%                 data.m(a).roll(indro(b)+1:indro(b+1)) = data.m(a).roll(indro(b)+1:indro(b+1))-360;
+%             end
+%         end
+%     end
+%     
+% end
 
 
 % %compute the velocity

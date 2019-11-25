@@ -146,9 +146,9 @@ while i <= length(varargin)
             angm = varargin{i+1};
             if isstruct(angm) && isstruct(m)
                 for a = 1:length(m)
-                    m(a).azim = angm(a).azim;
-                    m(a).elev = angm(a).elev;
-                    m(a).roll = angm(a).roll;
+                    ma(a).azim = angm(a).azim;
+                    ma(a).elev = angm(a).elev;
+                    ma(a).roll = angm(a).roll;
                 end
             elseif isstruct(angm) && ~isstruct(m)
                 for a = 1:length(m)
@@ -158,15 +158,31 @@ while i <= length(varargin)
                 end
             elseif ~isstruct(angm) && isstruct(m)
                 for a = 1:size(angm,3)
-                    m(a).azim = angm(:,1,a);
-                    m(a).elev = angm(:,2,a);
-                    m(a).roll = angm(:,3,a);
+                    ma(a).azim = angm(:,1,a);
+                    ma(a).elev = angm(:,2,a);
+                    ma(a).roll = angm(:,3,a);
                 end
             else  %is matrix
                 for a = 1:size(angm,3)
                     ma(a).azim = angm(:,1,a);
                     ma(a).elev = angm(:,2,a);
                     ma(a).roll = angm(:,3,a);
+                end
+            end
+            i = i+2;
+        case 'rotmat'
+            rotmat = varargin{i+1};
+            if isstruct(rotmat) && isstruct(m)
+                for a = 1:length(m)
+                    ma(a).rotmat = rotmat(a).rotmat;
+                end
+            elseif ~isstruct(rotmat) && isstruct(m)
+                for a = 1:size(rotmat,4)
+                    ma(a).rotmat = rotmat(:,:,:,a);
+                end
+            else  %is matrix
+                for a = 1:size(rotmat,4)
+                    ma(a).rotmat = rotmat(:,:,:,a);
                 end
             end
             i = i+2;
@@ -201,9 +217,28 @@ if ~isstruct(m)
     m = n;
     
     for a = 1:length(m)
-        m(a).azim = ma(a).azim;
-        m(a).elev = ma(a).elev;
-        m(a).roll = ma(a).roll;
+        if isfield(ma(a),'azim')
+            m(a).azim = ma(a).azim;
+            m(a).elev = ma(a).elev;
+            m(a).roll = ma(a).roll;
+        elseif isfield(ma(a),'rotmat') %no euler angles, but rotation matrix
+            m(a).azim = atan2d(m(a).rotmat(2,1),data.m(a).rotmat(1,1));
+            m(a).elev = -asind(m(a).rotmat(3,1));
+            m(a).roll = atan2d(m(a).rotmat(3,2),data.m(a).rotmat(3,3));
+        end
+        if isfield(ma(a),'rotmat')
+            m(a).rotmat = ma(a).rotmat;
+        elseif isfield(ma(a),'azim') %no rotation matrix, but euler angles
+            m(a).rotmat(1,1,:) = cosd(m(a).azim).*cosd(m(a).elev);
+            m(a).rotmat(1,2,:) = cosd(m(a).azim).*sind(m(a).elev).*sind(m(a).roll)-sind(m(a).azim).*cosd(m(a).roll);
+            m(a).rotmat(1,3,:) = cosd(m(a).azim).*sind(m(a).elev).*cosd(m(a).roll)+sind(m(a).azim).*sind(m(a).roll);
+            m(a).rotmat(2,1,:) = sind(m(a).azim).*cosd(m(a).elev);
+            m(a).rotmat(2,2,:) = sind(m(a).azim).*sind(m(a).elev).*sind(m(a).roll)+cosd(m(a).azim).*cosd(m(a).roll);
+            m(a).rotmat(2,3,:) = sind(m(a).azim).*sind(m(a).elev).*cosd(m(a).roll)-cosd(m(a).azim).*sind(m(a).roll);
+            m(a).rotmat(3,1,:) = -sind(m(a).elev);
+            m(a).rotmat(3,2,:) = cosd(m(a).elev).*sind(m(a).roll);
+            m(a).rotmat(3,3,:) = cosd(m(a).elev).*cosd(m(a).roll);
+        end
     end
 end
 
@@ -224,6 +259,10 @@ if ~isfield(m,'azim')
         m(a).elev = NaN*ones(size(m(a).x));
         m(a).roll = NaN*ones(size(m(a).x));
     end
+end
+
+if ~isfield(m,'rotmat')
+    m(a).rotmat = NaN*ones(3,3,size(m(a).x,1));
 end
 
 for a = length(m)+1:7

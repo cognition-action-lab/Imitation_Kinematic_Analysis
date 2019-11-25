@@ -302,12 +302,15 @@ for a = 1:size(Data,1)
                 for c = 1:length(Data(a,b,z).m)
                     
                     Data(a,b,z).m(c).rotangunrot = Data(a,b,z).m(c).rotang;
+                    Data(a,b,z).m(c).xunrot = Data(a,b,z).m(c).x;
+                    Data(a,b,z).m(c).yunrot = Data(a,b,z).m(c).y;
+                    Data(a,b,z).m(c).zunrot = Data(a,b,z).m(c).z;
                     
                     vec = [Data(a,b,z).m(c).x(d) Data(a,b,z).m(c).y(d) Data(a,b,z).m(c).z(d)];
                     rotvec = RotMat * vec';
-                    Data(a,b,z).m(c).rotx(d,1) = rotvec(1);
-                    Data(a,b,z).m(c).roty(d,1) = rotvec(2);
-                    Data(a,b,z).m(c).rotz(d,1) = rotvec(3);
+                    Data(a,b,z).m(c).x(d,1) = rotvec(1);
+                    Data(a,b,z).m(c).y(d,1) = rotvec(2);
+                    Data(a,b,z).m(c).z(d,1) = rotvec(3);
                     
                     %rotate the rotation matrix
                     Data(a,b,z).m(c).rotang(:,:,d) = Data(a,b,z).m(c).rotang(:,:,d)*RotMat;
@@ -384,9 +387,9 @@ for a = 1:size(Data,1)
                         end
                     end
                     
-                end
+                end %end for c
                 
-            end
+            end %end for d
             
 %             for c = 1:length(Data(a,b,z).m)
 %                 

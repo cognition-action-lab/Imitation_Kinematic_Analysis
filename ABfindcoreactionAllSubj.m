@@ -266,5 +266,4 @@ end %end for all items
 
 %the data are saved DURING the loop above, so we don't need to add in any
 %code to save the data again here.
-
-
+fprintf('\n\nAll selected subjects and items have been marked and saved.\n\n');

@@ -36,9 +36,9 @@ fprintf('\nSelect data folder to process.\n');
 fpath = uigetdir('*.*','Select data folder to process');
 
 %extract the subjects in the folder
-fnamelist = cellstr(ls(fpath));
-[~,idx]=sort(fnamelist); %ensure the files are sorted alphabetically
-fnamelist=fnamelist(idx);
+fnamelist = dir(fpath);
+xlsfiles={fnamelist.name};
+[fnamelist]=sort(xlsfiles); %ensure the files are sorted alphabetically
 
 %subgroup by type: model, control, patient
 % imdl = 0;
@@ -49,6 +49,10 @@ fnamelist=fnamelist(idx);
 % Patient = {};
 isubj = 0;
 Subj = {};
+iblk = 0;
+Block = {};
+ifile = 0;
+fnames = {};
 for a = 1:length(fnamelist)
 %     if contains(fnamelist{a},'model','IgnoreCase',true)
 %         imdl = imdl+1;
@@ -69,30 +73,65 @@ for a = 1:length(fnamelist)
     
 
     if contains(fnamelist{a},'model','IgnoreCase',true)
-        isubj = isubj+1;
-        fnames{isubj} = fnamelist{a};
-        Subj{isubj} = 'Model';
+        subjid = 'Model';
+        if ~any(strcmpi(Subj,subjid))        
+            isubj = isubj+1;
+            Subj{isubj} = subjid;
+        end
+        blk = fnamelist{a}(isep(1)+1:isep(2)-1); %we will make a strong assumption about the file name pattern!
+        if ~any(strcmpi(Block,blk))
+            iblk = iblk+1;
+            Block{iblk} = blk;
+        end
+        if ~any(strcmpi(fnames,fnamelist{a}))
+            ifile = ifile+1;
+            fnames{ifile} = fnamelist{a};
+        end
     elseif contains(fnamelist{a},'cb','IgnoreCase',true)
         itmp = strfind(lower(fnamelist{a}),'cb');
         isep = strfind(fnamelist{a},'_');
         subjid = fnamelist{a}(itmp:isep(1)-1);
-        if ~any(contains(Subj,subjid))        
+        if ~any(strcmpi(Subj,subjid))        
             isubj = isubj+1;
-            fnames{isubj} = fnamelist{a};
             Subj{isubj} = subjid;
+        end
+        blk = fnamelist{a}(isep(1)+1:isep(2)-1); %we will make a strong assumption about the file name pattern!
+        if ~any(strcmpi(Block,blk))
+            iblk = iblk+1;
+            Block{iblk} = blk;
+        end
+        if ~any(strcmpi(fnames,fnamelist{a}))
+            ifile = ifile+1;
+            fnames{ifile} = fnamelist{a};
         end
     elseif contains(fnamelist{a},'ab','IgnoreCase',true)
         itmp = strfind(lower(fnamelist{a}),'ab');
         isep = strfind(fnamelist{a},'_');
         subjid = fnamelist{a}(itmp:isep(1)-1);
-        if ~any(contains(Subj,subjid))        
+        if ~any(strcmpi(Subj,subjid))        
             isubj = isubj+1;
-            fnames{isubj} = fnamelist{a};
             Subj{isubj} = subjid;
-        end        
+        end
+        blk = fnamelist{a}(isep(1)+1:isep(2)-1); %we will make a strong assumption about the file name pattern!
+        if ~any(strcmpi(Block,blk))
+            iblk = iblk+1;
+            Block{iblk} = blk;
+        end
+        if ~any(strcmpi(fnames,fnamelist{a}))
+            ifile = ifile+1;
+            fnames{ifile} = fnamelist{a};
+        end
     elseif contains(fnamelist{a},'.mat','IgnoreCase',true)
         fprintf('\nFile %s not recognized.',fnamelist{a});
     end
+end
+
+%if the model is in the list, put it first
+imdl = contains(Subj,'model','IgnoreCase',true);
+if any(imdl)
+    tmpSubj{1} = Subj{imdl};
+    tmpSubj = [tmpSubj Subj(~imdl)];
+    Subj = tmpSubj;
 end
 
 %choose which of the existing subjects we actually want to process
@@ -102,15 +141,46 @@ if isempty(isubj)
 end
 
 Subj = Subj(isubj);
+
+%next, choose what block to process
+iblk = listdlg('ListString',Block,'PromptString','Choose block to process.','SelectionMode','single');
+if isempty(isubj)
+    error('Error: No subjects selected to be analyzed.')
+end
+Block = Block{iblk};
+
+%reduce the file names list to only those chosen subjects and blocks
+iblk = contains(fnames,['_' Block '_']); %again we will assume blocknames are separated by '_' in the filename!
+fnames = fnames(iblk);
+
+isubj = zeros(size(fnames));
+for a = 1:length(Subj)
+    isubj = isubj | contains(fnames,Subj{a});
+end
+
 fnames = fnames(isubj);
 
-%if the model is in the list, put it first
-imdl = contains(Subj,'model','IgnoreCase',true);
-if any(imdl)
-    tmpSubj{1} = Subj{imdl};
-    tmpSubj = [tmpSubj Subj(~imdl)];
-    Subj = tmpSubj;
+%make sure we have unique fnames - throw out duplicates. It doesn't matter
+% whether we throw out the _data or the _markdata because we'll check
+% whether both file names exist later.
+a = 1;
+nfnames = length(fnames);
+while a < nfnames
+    isep = strfind(fnames{a},'_');
+    subjblk = fnames{a}(1:isep(2)-1);
+    isubjblk = find(contains(fnames,subjblk,'IgnoreCase',true) == 1);
+    if length(isubjblk) > 1
+        fnames(isubjblk(2:end)) = [];
+    end
+    a = a+1;
+    nfnames = length(fnames);
 end
+
+if isempty(fnames)
+    error('No files satisfy the requested subject/block combination!');
+end
+
+clear i* subjblk subjid xlsfiles blk fnamelist;
 
 %next, choose what items to process. We'll do that by loading the first
 %file and checking what items are there; we will assume that all the other
@@ -135,12 +205,14 @@ end
 
 for b = iitems
     
-    for a = 1:length(Subj)
+    for a = 1:length(fnames)
         
         clear temp BlockData tmpsavfile;
         
-        tmpfname = cellstr(ls(fpath));
-        ifile = contains(tmpfname,Subj{a},'IgnoreCase',true);
+        tmpfname = dir(fpath);
+        tmpfname = {tmpfname.name};
+        isep = strfind(fnames{a},'_');
+        ifile = contains(tmpfname,fnames{a}(1:isep(2)-1),'IgnoreCase',true);
         imark = contains(tmpfname,'_markdata','IgnoreCase',true);
         
         if any(ifile & imark)
@@ -204,7 +276,8 @@ for b = iitems
             BlockData.inds(b).SubAction = [NaN NaN];
             
             if checkoverwrite == 1
-                if input(sprintf('Overwrite %s existing marked data file? (Y = 1; N = 0): ',Subj{a}))
+                tosave = questdlg(sprintf('No data for item found. Write NAN to existing marked data file?'),'Save file?','Yes','No','Yes');
+                if strcmp(tosave,'Yes') %input(sprintf('Overwrite %s existing marked data file? (Y = 1; N = 0): ',Subj{a}))
                     save(fullfile(fpath,tmpsavfile),'BlockData');
                 else
                     fprintf('\n\nData from subject %s, item %s not saved!\n  All changes to this subject/item have been lost.\n',Subj{a},BlockData.Items{b});
@@ -226,7 +299,7 @@ for b = iitems
             inds{2} = BlockData.inds(b).SubAction;
         end
         
-        if isempty(inds{1}) && isemty(inds{2})
+        if isempty(inds{1}) && isempty(inds{2})
             inds = addmarks(BlockData.vel{b}(:,:,1:6),'Nchan',3,'vthresh',0.2,'vthreshMin',0.1);
         end
         
@@ -245,7 +318,8 @@ for b = iitems
                 
         %save the marked data for this subject
         if checkoverwrite == 1
-            if input(sprintf('Overwrite %s existing marked data file? (Y = 1; N = 0): ',Subj{a}))
+            tosave = questdlg(sprintf('Overwrite %s existing marked data file?',Subj{a}),'Save file?','Yes','No','Yes');
+            if strcmp(tosave,'Yes') %input(sprintf('Overwrite %s existing marked data file? (Y = 1; N = 0): ',Subj{a}))
                 save(fullfile(fpath,tmpsavfile),'BlockData');
             else
                 fprintf('\n\nData from subject %s, item %s not saved!\n  All changes to this subject/item have been lost.\n',Subj{a},BlockData.Items{b});
@@ -256,9 +330,12 @@ for b = iitems
         
     end %end for all subjects
     
-    loopcont = input('Continue to the next item? (1 = yes, 0 = no/quit): ');
-    if loopcont == 0
-        break;
+    if b ~= iitems(end)
+        %loopcont = input('Continue to the next item? (1 = yes, 0 = no/quit): ');
+        loopcont = questdlg('Continue to the next item?','Do next item?','Yes','No/Quit','Yes');
+        if ~strcmp(loopcont,'Yes')%loopcont == 0
+            break;
+        end
     end
     
 end %end for all items

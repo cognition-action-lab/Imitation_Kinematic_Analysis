@@ -43,6 +43,24 @@ if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && contains(varar
     if ~isempty(isubjID)
         isepsubjID = isep(find(isep-isubjID>0,1,'first'));
         subjID = fname(isubjID+3:isepsubjID-1);
+    elseif contains(fname,'AB') || contains(fname,'CB')
+        isubjID = strfind(fname,'AB');
+        if isempty(isubjID)
+            isubjID = strfind(fname,'CB');
+        end
+        
+        if isempty(isubjID)
+            subjID = '0';
+        else
+            isep = strfind(fname,'_');
+            isepsubjID = isep(find(isep-isubjID>0,1,'first'));
+            if isempty(isepsubjID)
+                subjID = fname(isubjID:end);
+            else
+                subjID = fname(isubjID:isepsubjID-1);
+            end
+        end
+        
     else
         isubjID = strfind(fpath,'AB');
         if isempty(isubjID)
@@ -52,6 +70,7 @@ if nargin == 2 && (ischar(varargin{1}) && ischar(varargin{2})) && contains(varar
         if isempty(isubjID)
             subjID = '0';
         else
+            isubjID = isubjID(1); %take the first one, if there are multiple folders labeled with the subject ID
             islash = strfind(fpath,filesep);
             isepsubjID = islash(find(islash-isubjID>0,1,'first'));
             if isempty(isepsubjID)

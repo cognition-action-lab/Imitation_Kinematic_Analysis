@@ -263,7 +263,7 @@ end
 %  compute a separate rotation for each time point and rotate all the
 %  markers at that time point by that rotation angle.
 
-fprintf('Data loaded. Processing...');
+fprintf('\nData loaded. Processing...\n');
 
 for a = 1:size(Data,1)
     for b = 1:size(Data,2)
@@ -452,6 +452,8 @@ end
 
 %%
 
+fprintf('  Computing joint angles...\n');
+
 %compute joint angles from position data
 for a = 1:size(Data,1)
     for b = 1:size(Data,2)
@@ -514,6 +516,8 @@ end
 
 
 %%
+
+fprintf('  Sorting data...\n');
 
 % 
 % if length(blocktypes) > 1

@@ -331,7 +331,7 @@ for a = 1:size(Data,1)
                     Data(a,b,z).m(c).z(d,1) = rotvec(3);
                     
                     %rotate the rotation matrix
-                    Data(a,b,z).m(c).rotang(:,:,d) = RotMat*Data(a,b,z).m(c).rotang(:,:,d);
+                    Data(a,b,z).m(c).rotang(:,:,d) = RotMat*Data(a,b,z).m(c).rotang(:,:,d)*(RotMat'); %U_hat = R*U*R'
                     
                     %recalculate the Euler angles from the rotated rotation matrix
                     Data(a,b,z).m(c).azim(d) = atan2d(Data(a,b,z).m(c).rotang(2,1,d),Data(a,b,z).m(c).rotang(1,1,d));

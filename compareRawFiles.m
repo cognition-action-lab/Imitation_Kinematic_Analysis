@@ -160,7 +160,7 @@ for ifile = 1:2
             
             %we also need to apply this transformation to the rotation matrices
             for b = 1:size(data.m(a).rotang,3)
-                data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b)*RotMat';
+                data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b);
             end
             
         end
@@ -641,7 +641,7 @@ for ifile = 1:2
             
             %we also need to apply this transformation to the rotation matrices
             for b = 1:size(data.m(a).rotang,3)
-                data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b)*(RotMat');
+                data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b);
             end
             
             
@@ -933,7 +933,7 @@ for a = 1:length(Data)
             Data(a).m(c).z(d,1) = rotvec(3);
             
             %rotate the rotation matrix (U_hat = RUR')
-            Data(a).m(c).rotang(:,:,d) = RotMat*Data(a).m(c).rotang(:,:,d)*(RotMat');
+            Data(a).m(c).rotang(:,:,d) = RotMat*Data(a).m(c).rotang(:,:,d);
             
             %recalculate the Euler angles from the rotated rotation matrix
             Data(a).m(c).azim(d) = atan2d(Data(a).m(c).rotang(2,1,d),Data(a).m(c).rotang(1,1,d));

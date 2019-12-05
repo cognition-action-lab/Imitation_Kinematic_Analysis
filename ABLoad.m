@@ -342,7 +342,7 @@ for a = 1:length(data.m)
     
     %we also need to apply this transformation to the rotation matrices
     for b = 1:size(data.m(a).rotang,3)
-        data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b)*(RotMat');
+        data.m(a).rotang(:,:,b) = RotMat*data.m(a).rotang(:,:,b);
     end
     
     

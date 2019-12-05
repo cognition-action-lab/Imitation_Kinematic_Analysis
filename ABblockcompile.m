@@ -284,18 +284,36 @@ for a = 1:size(Data,1)
             
             for d = 1:size(Data(a,b,z).m(1).x,1)
                 
-                %calculate the angle between the shoulders and the x axis; this
-                %will tell us how far to rotate the shoulders to align the frontal
-                %plane with the x-z plane.
+%                 %calculate the angle between the shoulders and the x axis; this
+%                 %will tell us how far to rotate the shoulders to align the frontal
+%                 %plane with the x-z plane.
+%                 v1 = [Data(a,b,z).m(8).x(d)-Data(a,b,z).m(7).x(d), Data(a,b,z).m(8).y(d)-Data(a,b,z).m(7).y(d), Data(a,b,z).m(8).z(d)-Data(a,b,z).m(7).z(d)];
+%                 theta = -acos(v1(1) / sqrt(sum(v1(1:2).^2,2)));
+%                 thetas(d) = theta;
+%                 
+%                 %calculate the rotation matrix
+%                 RotMat = [cos(theta) -sin(theta) 0;
+%                     sin(theta)  cos(theta) 0;
+%                     0           0          1];
+%                 
+                
+                %calculate the body-centered coordinate frame based on the
+                %shoulder-shoulder vector and the gravity vector. first,
+                %compute the normal vector (which points in the y_hat
+                %direction). 
                 v1 = [Data(a,b,z).m(8).x(d)-Data(a,b,z).m(7).x(d), Data(a,b,z).m(8).y(d)-Data(a,b,z).m(7).y(d), Data(a,b,z).m(8).z(d)-Data(a,b,z).m(7).z(d)];
-                theta = -acos(v1(1) / sqrt(sum(v1(1:2).^2,2)));
-                thetas(d) = theta;
+                v2 = [0 0 -1]; %gravity vector starts at the shoulder and points straight down
+                n = cross(v1,v2); %cross product of v1 and v2 is the y_hat vector
+                z_hat = cross(v1,n); %cross product of v1 and n is the z_hat vector
                 
-                %calculate the rotation matrix
-                RotMat = [cos(theta) -sin(theta) 0;
-                    sin(theta)  cos(theta) 0;
-                    0           0          1];
-                
+                %now we assmble the rotation matrix that will take us from world
+                %coordinates to body coordinates. I think this assumes we are pre-multiplying
+                v1 = v1./sqrt(sum(v1.^2));
+                n = n./sqrt(sum(n.^2));
+                z_hat = z_hat./sqrt(sum(z_hat.^2));
+                RotMat = [v1;
+                          n;
+                          z_hat];
                 
                 
                 %rotate all the markers and the rotation matrix for this sample
@@ -313,7 +331,7 @@ for a = 1:size(Data,1)
                     Data(a,b,z).m(c).z(d,1) = rotvec(3);
                     
                     %rotate the rotation matrix
-                    Data(a,b,z).m(c).rotang(:,:,d) = Data(a,b,z).m(c).rotang(:,:,d)*RotMat;
+                    Data(a,b,z).m(c).rotang(:,:,d) = RotMat*Data(a,b,z).m(c).rotang(:,:,d);
                     
                     %recalculate the Euler angles from the rotated rotation matrix
                     Data(a,b,z).m(c).azim(d) = atan2d(Data(a,b,z).m(c).rotang(2,1,d),Data(a,b,z).m(c).rotang(1,1,d));

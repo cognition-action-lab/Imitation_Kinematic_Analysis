@@ -22,8 +22,8 @@ for ifile = 1:2
     fid = fopen(fullfile(fpath{ifile},fname{ifile}),'r');
     
     %the file could be the model, which used the upside-down transmitter
-    %configuration. So we have to account for that.
-    if contains(fullfile(fpath{ifile},fname{ifile}),'model','IgnoreCase',true) || contains(fullfile(fpath{ifile},fname{ifile}),'.xls')
+    %configuration (except in a couple special cases). So we have to account for that.
+    if (contains(fullfile(fpath{ifile},fname{ifile}),'model','IgnoreCase',true) || contains(fullfile(fpath{ifile},fname{ifile}),'.xls')) && (~contains(fullfile(fpath{ifile},fname{ifile}),'hammer') || ~contains(fullfile(fpath{ifile},fname{ifile}),'drink'))
         
         
         temp = fgetl(fid);
@@ -893,18 +893,36 @@ for a = 1:length(Data)
     
     for d = 1:size(Data(a).m(1).x,1)
         
-        %calculate the angle between the shoulders and the x axis; this
-        %will tell us how far to rotate the shoulders to align the frontal
-        %plane with the x-z plane.
+        
+%         %calculate the angle between the shoulders and the x axis; this
+%         %will tell us how far to rotate the shoulders to align the frontal
+%         %plane with the x-z plane.
+%         v1 = [Data(a).m(8).x(d)-Data(a).m(7).x(d), Data(a).m(8).y(d)-Data(a).m(7).y(d), Data(a).m(8).z(d)-Data(a).m(7).z(d)];
+%         theta = -acos(v1(1) / sqrt(sum(v1(1:2).^2,2)));
+%         thetas(d) = theta;
+%         
+%         %calculate the rotation matrix
+%         RotMat = [cos(theta) -sin(theta) 0;
+%                   sin(theta)  cos(theta) 0;
+%                   0           0          1];
+
+        %calculate the body-centered coordinate frame based on the
+        %shoulder-shoulder vector and the gravity vector. first, compute
+        %the normal vector (which points in the y_hat direction).
         v1 = [Data(a).m(8).x(d)-Data(a).m(7).x(d), Data(a).m(8).y(d)-Data(a).m(7).y(d), Data(a).m(8).z(d)-Data(a).m(7).z(d)];
-        theta = -acos(v1(1) / sqrt(sum(v1(1:2).^2,2)));
-        thetas(d) = theta;
+        v2 = [0 0 -1]; %gravity vector starts at the shoulder and points straight down
+        n = cross(v1,v2); %cross product of v1 and v2 is the y_hat vector
+        z_hat = cross(v1,n); %cross product of v1 and n is the z_hat vector
         
-        %calculate the rotation matrix
-        RotMat = [cos(theta) -sin(theta) 0;
-                  sin(theta)  cos(theta) 0;
-                  0           0          1];
-        
+        %now we assmble the rotation matrix that will take us from world
+        %coordinates to body coordinates. I think this assumes we are pre-multiplying
+        v1 = v1./sqrt(sum(v1.^2));
+        n = n./sqrt(sum(n.^2));
+        z_hat = z_hat./sqrt(sum(z_hat.^2));
+        RotMat = [v1; 
+                  n; 
+                  z_hat];
+
         %rotate all the markers and the rotation matrix for this sample
         for c = 1:length(Data(a).m)
             
@@ -914,8 +932,8 @@ for a = 1:length(Data)
             Data(a).m(c).y(d,1) = rotvec(2);
             Data(a).m(c).z(d,1) = rotvec(3);
             
-            %rotate the rotation matrix
-            Data(a).m(c).rotang(:,:,d) = Data(a).m(c).rotang(:,:,d)*RotMat;
+            %rotate the rotation matrix (again pre-multiplying)
+            Data(a).m(c).rotang(:,:,d) = RotMat*Data(a).m(c).rotang(:,:,d);
             
             %recalculate the Euler angles from the rotated rotation matrix
             Data(a).m(c).azim(d) = atan2d(Data(a).m(c).rotang(2,1,d),Data(a).m(c).rotang(1,1,d));
@@ -981,7 +999,7 @@ for a = 1:6
     set(h(1),'LineWidth',1);
     set(h(2),'LineWidth',1);
     set(h(3),'LineWidth',1);
-    ylabel(ylabels{a});
+    ylabel([ylabels{a} 'pos']);
     set(gca,'ColorOrder','factory','NextPlot','replace');
     
     if a == 1
@@ -990,3 +1008,100 @@ for a = 1:6
     
 end
 
+
+pd = [];
+N = 200;
+
+%compute Pdist
+for a = 1:6
+   
+    inds = Data(1).inds;
+    t = Data(1).time(inds(1):inds(2));
+    t = t-t(1);
+    dur = t(end);
+    dN = dur/N;
+    tinterp = [0:dN:dur];
+    x = squeeze(Data(1).pos(inds(1):inds(2),:,a));
+    x = csapi(t',x',tinterp);
+    x = x';
+    
+    inds = Data(2).inds;
+    t = Data(2).time(inds(1):inds(2));
+    t = t-t(1);
+    dur = t(end);
+    dN = dur/N;
+    tinterp = [0:dN:dur];
+    y = squeeze(Data(2).pos(inds(1):inds(2),:,a));
+    y = csapi(t',y',tinterp);
+    y = y';
+    
+    pd(a) = procrustesMultiScale(x,y);
+end
+
+fprintf('\n\nProcrustes (sensors):\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n\n',pd(1),pd(2),pd(3),pd(4),pd(5),pd(6));
+
+
+% 
+% %plot the FT 
+% figure(2); clf;
+% figure(3); clf;
+% figure(4); clf;
+% figure(5); clf;
+% figure(6); clf;
+% figure(7); clf;
+% %ylabels = {'thumb','index','middle','hand','wrist','elbow'};
+% 
+% iplot = 0;
+% for a = 1:6
+%     indsA = Data(1).inds;
+%     tA = Data(1).time(indsA(1):indsA(2));
+%     tA = tA-tA(1);
+%     LA = length(tA);
+%     TA = mean(diff(tA));
+%     FsA = 1/TA;
+%     YA = fft(squeeze(Data(1).pos(indsA(1):indsA(2),:,a)));
+%     %P2A = abs(YA/LA);
+%     %P1A = P2A(1:LA/2+1,:);
+%     %P1A(2:end-1,:) = 2*P1A(2:end-1,:);
+%     %fA = FsA*(0:(LA/2))/LA;
+%     P1A = abs(YA);
+%     P1A = P1A(1:ceil(LA/2),:);
+%     fA = FsA*(0:(ceil(LA/2)-1))/LA;
+%     
+%     indsB = Data(2).inds;
+%     tB = Data(2).time(indsB(1):indsB(2));
+%     tB = tB-tB(1);
+%     LB = length(tB);
+%     TB = mean(diff(tB));
+%     FsB = 1/TB;
+%     YB = fft(squeeze(Data(2).pos(indsB(1):indsB(2),:,a)));
+%     %P2B = abs(YB/LB);
+%     %P1B = P2B(1:LB/2+1,:);
+%     %P1B(2:end-1,:) = 2*P1B(2:end-1,:);
+%     P1B = abs(YB);
+%     P1B = P1B(1:ceil(LB/2),:);
+%     fB = FsB*(0:(ceil(LB/2)-1))/LB;
+%     
+%     figure(a+1);
+% 
+%     for b = 1:3
+%         %iplot = iplot+1;
+%         plotlength = max([ceil(length(fA)/2)+1,ceil(length(fB)/2)+1]);
+%         subplot(1,3,b)
+%         h = plot(fA(1:plotlength),10*log10(P1A(1:plotlength,b)),'b-');
+%         hold on;
+%         h = plot(fB(1:plotlength),10*log10(P1B(1:plotlength,b)),'g-');
+%         if b == 1
+%             ylabel([ylabels{a} '|P1(f)|']);
+%         end
+%         
+%     end
+%     
+%     if a == 1
+%         legend('Data1','Data2');
+%     end
+%     if a >= 5
+%         xlabel('f (Hz)');
+%     end
+%     
+% end
